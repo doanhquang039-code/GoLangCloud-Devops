@@ -57,18 +57,26 @@ func main() {
 
 	employeeRepository := repository.NewMongoEmployeeRepository(db)
 	applicationRepository := repository.NewMongoApplicationRepository(db)
+	clusterRepository := repository.NewMongoClusterRepository(db)
 	deploymentRepository := repository.NewMongoDeploymentRepository(db)
+	pipelineRepository := repository.NewMongoPipelineRepository(db)
 
 	employeeService := service.NewEmployeeService(employeeRepository)
 	applicationService := service.NewApplicationService(applicationRepository)
-	deploymentService := service.NewDeploymentService(applicationRepository, deploymentRepository)
+	clusterService := service.NewClusterService(clusterRepository)
+	deploymentService := service.NewDeploymentService(applicationRepository, clusterRepository, deploymentRepository)
+	pipelineService := service.NewPipelineService(applicationRepository, pipelineRepository)
+	platformService := service.NewPlatformService(applicationRepository, clusterRepository, deploymentRepository, pipelineRepository)
 
 	healthController := controller.NewHealthController(db)
 	employeeController := controller.NewEmployeeController(employeeService)
 	applicationController := controller.NewApplicationController(applicationService)
+	clusterController := controller.NewClusterController(clusterService)
 	deploymentController := controller.NewDeploymentController(deploymentService)
+	pipelineController := controller.NewPipelineController(pipelineService)
+	platformController := controller.NewPlatformController(platformService)
 
-	router := server.NewRouter(healthController, employeeController, applicationController, deploymentController)
+	router := server.NewRouter(healthController, employeeController, applicationController, clusterController, deploymentController, pipelineController, platformController)
 
 	httpServer := &http.Server{
 		Addr:              ":" + port,

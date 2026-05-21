@@ -1,4 +1,5 @@
 /bin/
+.gocache/
 *.exe
 *.test
 .env

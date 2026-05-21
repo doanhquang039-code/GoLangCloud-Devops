@@ -37,11 +37,14 @@ The API listens on `http://localhost:8080`.
 
 ## Domain
 
-This project now has 3 simple modules:
+This project now has cloud and DevOps-oriented modules:
 
 - Employees: HR data owned by a team.
-- Applications: services/microservices managed by DevOps.
-- Deployments: deployment records for each application/environment/version.
+- Applications: services/microservices managed by DevOps, including runtime, port, replicas, environment variables, health endpoint, and tags.
+- Clusters: Kubernetes-style target clusters with provider, region, API endpoint, version, and operational status.
+- Deployments: deployment records for each application, cluster, namespace, environment, version, and rollout strategy.
+- Pipeline runs: CI/CD executions for each application, including branch, commit, stages, trigger owner, and final status.
+- Platform summary: lightweight operational counts grouped by deployment status.
 
 ## Endpoints
 
@@ -57,10 +60,22 @@ GET  /api/v1/applications
 POST /api/v1/applications
 GET  /api/v1/applications/{id}
 
+GET   /api/v1/clusters
+POST  /api/v1/clusters
+GET   /api/v1/clusters/{id}
+PATCH /api/v1/clusters/{id}
+
 GET   /api/v1/deployments
 POST  /api/v1/deployments
 GET   /api/v1/deployments/{id}
 PATCH /api/v1/deployments/{id}
+
+GET   /api/v1/pipelines
+POST  /api/v1/pipelines
+GET   /api/v1/pipelines/{id}
+PATCH /api/v1/pipelines/{id}
+
+GET  /api/v1/platform/summary
 ```
 
 Example create employee request:
@@ -82,7 +97,27 @@ Example create application request:
   "repository": "github.com/company/payroll-api",
   "runtime": "go1.22",
   "owner_team": "platform",
-  "criticality": "high"
+  "criticality": "high",
+  "port": 8080,
+  "replicas": 3,
+  "health_endpoint": "/healthz",
+  "environment": {
+    "LOG_LEVEL": "info"
+  },
+  "tags": ["go", "payroll", "backend"]
+}
+```
+
+Example create cluster request:
+
+```json
+{
+  "name": "eks-staging-ap-southeast-1",
+  "provider": "aws",
+  "region": "ap-southeast-1",
+  "endpoint": "https://staging.example.eks.amazonaws.com",
+  "version": "1.30",
+  "status": "ready"
 }
 ```
 
@@ -91,8 +126,11 @@ Example create deployment request:
 ```json
 {
   "application_id": "app-123",
+  "cluster_id": "cls-123",
+  "namespace": "hr-staging",
   "environment": "staging",
   "version": "v1.3.0",
+  "strategy": "canary",
   "requested_by": "devops@company.com"
 }
 ```
@@ -102,6 +140,18 @@ Example update deployment status request:
 ```json
 {
   "status": "succeeded"
+}
+```
+
+Example create pipeline run request:
+
+```json
+{
+  "application_id": "app-123",
+  "branch": "main",
+  "commit_sha": "4f9a2c9",
+  "triggered_by": "devops@company.com",
+  "stages": ["build", "unit-test", "security-scan", "containerize"]
 }
 ```
 

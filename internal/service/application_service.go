@@ -39,6 +39,7 @@ func (s *ApplicationService) CreateApplication(ctx context.Context, request mode
 	request.Runtime = strings.TrimSpace(request.Runtime)
 	request.OwnerTeam = strings.TrimSpace(request.OwnerTeam)
 	request.Criticality = strings.TrimSpace(request.Criticality)
+	request.HealthEndpoint = strings.TrimSpace(request.HealthEndpoint)
 
 	if request.Name == "" || request.Repository == "" || request.Runtime == "" || request.OwnerTeam == "" {
 		return model.Application{}, ErrInvalidApplication
@@ -46,18 +47,53 @@ func (s *ApplicationService) CreateApplication(ctx context.Context, request mode
 	if request.Criticality == "" {
 		request.Criticality = "medium"
 	}
+	if request.Port == 0 {
+		request.Port = 8080
+	}
+	if request.Replicas == 0 {
+		request.Replicas = 1
+	}
+	if request.HealthEndpoint == "" {
+		request.HealthEndpoint = "/healthz"
+	}
+	if request.Port < 1 || request.Port > 65535 || request.Replicas < 1 {
+		return model.Application{}, ErrInvalidApplication
+	}
 
 	now := time.Now().UTC()
 	application := model.Application{
-		ID:          fmt.Sprintf("app-%d", now.UnixNano()),
-		Name:        request.Name,
-		Repository:  request.Repository,
-		Runtime:     request.Runtime,
-		OwnerTeam:   request.OwnerTeam,
-		Criticality: request.Criticality,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:             fmt.Sprintf("app-%d", now.UnixNano()),
+		Name:           request.Name,
+		Repository:     request.Repository,
+		Runtime:        request.Runtime,
+		OwnerTeam:      request.OwnerTeam,
+		Criticality:    request.Criticality,
+		Port:           request.Port,
+		Replicas:       request.Replicas,
+		HealthEndpoint: request.HealthEndpoint,
+		Environment:    request.Environment,
+		Tags:           normalizeTags(request.Tags),
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
 	return s.applicationRepository.Save(ctx, application)
+}
+
+func normalizeTags(tags []string) []string {
+	normalized := make([]string, 0, len(tags))
+	seen := map[string]struct{}{}
+	for _, tag := range tags {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		if _, ok := seen[tag]; ok {
+			continue
+		}
+		seen[tag] = struct{}{}
+		normalized = append(normalized, tag)
+	}
+
+	return normalized
 }

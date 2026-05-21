@@ -15,12 +15,18 @@ var ErrInvalidDeployment = errors.New("invalid deployment input")
 
 type DeploymentService struct {
 	applicationRepository repository.ApplicationRepository
+	clusterRepository     repository.ClusterRepository
 	deploymentRepository  repository.DeploymentRepository
 }
 
-func NewDeploymentService(applicationRepository repository.ApplicationRepository, deploymentRepository repository.DeploymentRepository) *DeploymentService {
+func NewDeploymentService(
+	applicationRepository repository.ApplicationRepository,
+	clusterRepository repository.ClusterRepository,
+	deploymentRepository repository.DeploymentRepository,
+) *DeploymentService {
 	return &DeploymentService{
 		applicationRepository: applicationRepository,
+		clusterRepository:     clusterRepository,
 		deploymentRepository:  deploymentRepository,
 	}
 }
@@ -39,15 +45,30 @@ func (s *DeploymentService) GetDeploymentByID(ctx context.Context, id string) (m
 
 func (s *DeploymentService) CreateDeployment(ctx context.Context, request model.CreateDeploymentRequest) (model.Deployment, error) {
 	request.ApplicationID = strings.TrimSpace(request.ApplicationID)
+	request.ClusterID = strings.TrimSpace(request.ClusterID)
+	request.Namespace = strings.TrimSpace(request.Namespace)
 	request.Environment = strings.TrimSpace(request.Environment)
 	request.Version = strings.TrimSpace(request.Version)
+	request.Strategy = strings.TrimSpace(request.Strategy)
 	request.RequestedBy = strings.TrimSpace(request.RequestedBy)
 
-	if request.ApplicationID == "" || request.Environment == "" || request.Version == "" || request.RequestedBy == "" {
+	if request.ApplicationID == "" || request.ClusterID == "" || request.Environment == "" || request.Version == "" || request.RequestedBy == "" {
+		return model.Deployment{}, ErrInvalidDeployment
+	}
+	if request.Namespace == "" {
+		request.Namespace = "default"
+	}
+	if request.Strategy == "" {
+		request.Strategy = "rolling"
+	}
+	if !isValidDeploymentStrategy(request.Strategy) {
 		return model.Deployment{}, ErrInvalidDeployment
 	}
 
 	if _, err := s.applicationRepository.FindByID(ctx, request.ApplicationID); err != nil {
+		return model.Deployment{}, err
+	}
+	if _, err := s.clusterRepository.FindByID(ctx, request.ClusterID); err != nil {
 		return model.Deployment{}, err
 	}
 
@@ -55,14 +76,21 @@ func (s *DeploymentService) CreateDeployment(ctx context.Context, request model.
 	deployment := model.Deployment{
 		ID:            fmt.Sprintf("dep-%d", now.UnixNano()),
 		ApplicationID: request.ApplicationID,
+		ClusterID:     request.ClusterID,
+		Namespace:     request.Namespace,
 		Environment:   request.Environment,
 		Version:       request.Version,
+		Strategy:      request.Strategy,
 		Status:        "running",
 		RequestedBy:   request.RequestedBy,
 		StartedAt:     now,
 	}
 
 	return s.deploymentRepository.Save(ctx, deployment)
+}
+
+func isValidDeploymentStrategy(strategy string) bool {
+	return strategy == "rolling" || strategy == "blue-green" || strategy == "canary"
 }
 
 func (s *DeploymentService) UpdateDeploymentStatus(ctx context.Context, id string, request model.UpdateDeploymentStatusRequest) (model.Deployment, error) {

@@ -78,11 +78,15 @@ func (c *DeploymentController) CreateDeployment(w http.ResponseWriter, r *http.R
 
 	deployment, err := c.deploymentService.CreateDeployment(r.Context(), request)
 	if errors.Is(err, service.ErrInvalidDeployment) {
-		writeError(w, http.StatusBadRequest, "application_id, environment, version and requested_by are required")
+		writeError(w, http.StatusBadRequest, "application_id, cluster_id, environment, version and requested_by are required; strategy must be rolling, blue-green or canary")
 		return
 	}
 	if errors.Is(err, repository.ErrApplicationNotFound) {
 		writeError(w, http.StatusNotFound, "application not found")
+		return
+	}
+	if errors.Is(err, repository.ErrClusterNotFound) {
+		writeError(w, http.StatusNotFound, "cluster not found")
 		return
 	}
 	if err != nil {

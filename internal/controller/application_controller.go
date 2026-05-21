@@ -71,7 +71,7 @@ func (c *ApplicationController) CreateApplication(w http.ResponseWriter, r *http
 
 	application, err := c.applicationService.CreateApplication(r.Context(), request)
 	if errors.Is(err, service.ErrInvalidApplication) {
-		writeError(w, http.StatusBadRequest, "name, repository, runtime and owner_team are required")
+		writeError(w, http.StatusBadRequest, "name, repository, runtime and owner_team are required; port must be 1-65535 and replicas must be positive")
 		return
 	}
 	if err != nil {

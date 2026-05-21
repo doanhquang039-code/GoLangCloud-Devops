@@ -29,11 +29,43 @@ Content-Type: application/json
   "repository": "github.com/company/payroll-api",
   "runtime": "go1.22",
   "owner_team": "platform",
-  "criticality": "high"
+  "criticality": "high",
+  "port": 8080,
+  "replicas": 3,
+  "health_endpoint": "/healthz",
+  "environment": {
+    "LOG_LEVEL": "info",
+    "FEATURE_FLAGS": "payroll-v2"
+  },
+  "tags": ["go", "payroll", "backend"]
 }
 
 ### List applications
 GET {{baseUrl}}/api/v1/applications
+
+### Create cluster
+POST {{baseUrl}}/api/v1/clusters
+Content-Type: application/json
+
+{
+  "name": "eks-staging-ap-southeast-1",
+  "provider": "aws",
+  "region": "ap-southeast-1",
+  "endpoint": "https://staging.example.eks.amazonaws.com",
+  "version": "1.30",
+  "status": "ready"
+}
+
+### List clusters
+GET {{baseUrl}}/api/v1/clusters
+
+### Mark cluster degraded
+PATCH {{baseUrl}}/api/v1/clusters/replace-with-created-cluster-id
+Content-Type: application/json
+
+{
+  "status": "degraded"
+}
 
 ### Create deployment
 POST {{baseUrl}}/api/v1/deployments
@@ -41,8 +73,11 @@ Content-Type: application/json
 
 {
   "application_id": "replace-with-created-application-id",
+  "cluster_id": "replace-with-created-cluster-id",
+  "namespace": "hr-staging",
   "environment": "staging",
   "version": "v1.3.0",
+  "strategy": "canary",
   "requested_by": "devops@company.com"
 }
 
@@ -56,3 +91,29 @@ Content-Type: application/json
 {
   "status": "succeeded"
 }
+
+### Create pipeline run
+POST {{baseUrl}}/api/v1/pipelines
+Content-Type: application/json
+
+{
+  "application_id": "replace-with-created-application-id",
+  "branch": "main",
+  "commit_sha": "4f9a2c9",
+  "triggered_by": "devops@company.com",
+  "stages": ["build", "unit-test", "security-scan", "containerize"]
+}
+
+### List pipeline runs
+GET {{baseUrl}}/api/v1/pipelines
+
+### Mark pipeline as succeeded
+PATCH {{baseUrl}}/api/v1/pipelines/replace-with-created-pipeline-id
+Content-Type: application/json
+
+{
+  "status": "succeeded"
+}
+
+### Platform summary
+GET {{baseUrl}}/api/v1/platform/summary
