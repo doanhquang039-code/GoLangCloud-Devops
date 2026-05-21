@@ -1,60 +1,60 @@
 package repository
 
 import (
-    "context"
-    "errors"
-    "sync"
+	"context"
+	"errors"
+	"sync"
 
-    "hr-cloud-service/internal/model"
+	"hr-cloud-service/internal/model"
 )
 
 var ErrEmployeeNotFound = errors.New("employee not found")
 
 type EmployeeRepository interface {
-    FindAll(ctx context.Context) ([]model.Employee, error)
-    FindByID(ctx context.Context, id string) (model.Employee, error)
-    Save(ctx context.Context, employee model.Employee) (model.Employee, error)
+	FindAll(ctx context.Context) ([]model.Employee, error)
+	FindByID(ctx context.Context, id string) (model.Employee, error)
+	Save(ctx context.Context, employee model.Employee) (model.Employee, error)
 }
 
 type InMemoryEmployeeRepository struct {
-    mu        sync.RWMutex
-    employees map[string]model.Employee
+	mu        sync.RWMutex
+	employees map[string]model.Employee
 }
 
 func NewInMemoryEmployeeRepository() *InMemoryEmployeeRepository {
-    return &InMemoryEmployeeRepository{
-        employees: make(map[string]model.Employee),
-    }
+	return &InMemoryEmployeeRepository{
+		employees: make(map[string]model.Employee),
+	}
 }
 
 func (r *InMemoryEmployeeRepository) FindAll(ctx context.Context) ([]model.Employee, error) {
-    r.mu.RLock()
-    defer r.mu.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-    employees := make([]model.Employee, 0, len(r.employees))
-    for _, employee := range r.employees {
-        employees = append(employees, employee)
-    }
+	employees := make([]model.Employee, 0, len(r.employees))
+	for _, employee := range r.employees {
+		employees = append(employees, employee)
+	}
 
-    return employees, nil
+	return employees, nil
 }
 
 func (r *InMemoryEmployeeRepository) FindByID(ctx context.Context, id string) (model.Employee, error) {
-    r.mu.RLock()
-    defer r.mu.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-    employee, ok := r.employees[id]
-    if !ok {
-        return model.Employee{}, ErrEmployeeNotFound
-    }
+	employee, ok := r.employees[id]
+	if !ok {
+		return model.Employee{}, ErrEmployeeNotFound
+	}
 
-    return employee, nil
+	return employee, nil
 }
 
 func (r *InMemoryEmployeeRepository) Save(ctx context.Context, employee model.Employee) (model.Employee, error) {
-    r.mu.Lock()
-    defer r.mu.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-    r.employees[employee.ID] = employee
-    return employee, nil
+	r.employees[employee.ID] = employee
+	return employee, nil
 }

@@ -1,6 +1,6 @@
-# HR Cloud Service
+# HR Cloud DevOps Service
 
-A small Go backend example for HR-style employee management. The project uses a traditional MVC-style structure, close to what you may know from Java/Spring:
+A small Go backend example for HR and DevOps-style service management. The project uses a traditional MVC-style structure, close to what you may know from Java/Spring:
 
 - `cmd/api`: application entrypoint
 - `internal/model`: data models and request DTOs
@@ -8,6 +8,7 @@ A small Go backend example for HR-style employee management. The project uses a 
 - `internal/service`: business logic
 - `internal/repository`: data access layer
 - `internal/server`: route registration and server wiring
+- `deploy/k8s`: Kubernetes manifests
 
 Request flow:
 
@@ -17,25 +18,52 @@ HTTP request -> Controller -> Service -> Repository -> Model
 
 ## Run
 
+The service uses MongoDB. Your local MongoDB Compass screenshot shows MongoDB is already available at:
+
+```text
+mongodb://localhost:27017
+```
+
 Install Go, then run:
 
 ```powershell
 cd D:\GoLang\hr-cloud-service
+$env:MONGO_URI="mongodb://localhost:27017"
+$env:MONGO_DATABASE="hr_cloud"
 go run .\cmd\api
 ```
 
 The API listens on `http://localhost:8080`.
 
+## Domain
+
+This project now has 3 simple modules:
+
+- Employees: HR data owned by a team.
+- Applications: services/microservices managed by DevOps.
+- Deployments: deployment records for each application/environment/version.
+
 ## Endpoints
 
 ```http
 GET  /healthz
+GET  /readyz
+
 GET  /api/v1/employees
 POST /api/v1/employees
 GET  /api/v1/employees/{id}
+
+GET  /api/v1/applications
+POST /api/v1/applications
+GET  /api/v1/applications/{id}
+
+GET   /api/v1/deployments
+POST  /api/v1/deployments
+GET   /api/v1/deployments/{id}
+PATCH /api/v1/deployments/{id}
 ```
 
-Example create request:
+Example create employee request:
 
 ```json
 {
@@ -44,6 +72,74 @@ Example create request:
   "department": "Engineering",
   "title": "Backend Engineer"
 }
+```
+
+Example create application request:
+
+```json
+{
+  "name": "payroll-api",
+  "repository": "github.com/company/payroll-api",
+  "runtime": "go1.22",
+  "owner_team": "platform",
+  "criticality": "high"
+}
+```
+
+Example create deployment request:
+
+```json
+{
+  "application_id": "app-123",
+  "environment": "staging",
+  "version": "v1.3.0",
+  "requested_by": "devops@company.com"
+}
+```
+
+Example update deployment status request:
+
+```json
+{
+  "status": "succeeded"
+}
+```
+
+## Docker
+
+Build and run:
+
+```powershell
+docker build -t hr-cloud-devops-service .
+docker run --rm -p 8080:8080 -e MONGO_URI="mongodb://host.docker.internal:27017" -e MONGO_DATABASE="hr_cloud" hr-cloud-devops-service
+```
+
+Or with Docker Compose:
+
+```powershell
+docker compose up --build
+```
+
+`/healthz` checks whether the process is alive. `/readyz` checks whether the API can ping MongoDB.
+
+## API Examples
+
+Open `docs/api.http` in VS Code or IntelliJ HTTP Client to call the sample APIs.
+
+## CI
+
+The GitHub Actions workflow in `.github/workflows/ci.yml` runs:
+
+- `gofmt` check
+- `go test ./...`
+- Docker image build
+
+## Kubernetes
+
+After building and pushing the image, update the image name in `deploy/k8s/deployment.yaml`, then run:
+
+```powershell
+kubectl apply -f .\deploy\k8s
 ```
 
 ## Note

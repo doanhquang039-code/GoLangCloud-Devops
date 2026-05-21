@@ -1,26 +1,28 @@
 package server
 
 import (
-    "net/http"
+	"net/http"
 
-    "hr-cloud-service/internal/controller"
+	"hr-cloud-service/internal/controller"
 )
 
-func NewRouter(employeeController *controller.EmployeeController) http.Handler {
-    mux := http.NewServeMux()
+func NewRouter(
+	healthController *controller.HealthController,
+	employeeController *controller.EmployeeController,
+	applicationController *controller.ApplicationController,
+	deploymentController *controller.DeploymentController,
+) http.Handler {
+	mux := http.NewServeMux()
 
-    mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-        if r.Method != http.MethodGet {
-            w.WriteHeader(http.StatusMethodNotAllowed)
-            return
-        }
-        w.Header().Set("Content-Type", "application/json")
-        w.WriteHeader(http.StatusOK)
-        _, _ = w.Write([]byte(`{"status":"ok"}`))
-    })
+	mux.HandleFunc("/healthz", healthController.Health)
+	mux.HandleFunc("/readyz", healthController.Ready)
 
-    mux.HandleFunc("/api/v1/employees", employeeController.Index)
-    mux.HandleFunc("/api/v1/employees/", employeeController.Show)
+	mux.HandleFunc("/api/v1/employees", employeeController.Index)
+	mux.HandleFunc("/api/v1/employees/", employeeController.Show)
+	mux.HandleFunc("/api/v1/applications", applicationController.Index)
+	mux.HandleFunc("/api/v1/applications/", applicationController.Show)
+	mux.HandleFunc("/api/v1/deployments", deploymentController.Index)
+	mux.HandleFunc("/api/v1/deployments/", deploymentController.ShowOrUpdateStatus)
 
-    return mux
+	return WithRequestLogging(mux)
 }

@@ -1,0 +1,58 @@
+@baseUrl = http://localhost:8080
+
+### Health check
+GET {{baseUrl}}/healthz
+
+### Readiness check
+GET {{baseUrl}}/readyz
+
+### Create employee
+POST {{baseUrl}}/api/v1/employees
+Content-Type: application/json
+
+{
+  "name": "Nguyen Van A",
+  "email": "a@example.com",
+  "department": "Engineering",
+  "title": "Backend Engineer"
+}
+
+### List employees
+GET {{baseUrl}}/api/v1/employees
+
+### Create application
+POST {{baseUrl}}/api/v1/applications
+Content-Type: application/json
+
+{
+  "name": "payroll-api",
+  "repository": "github.com/company/payroll-api",
+  "runtime": "go1.22",
+  "owner_team": "platform",
+  "criticality": "high"
+}
+
+### List applications
+GET {{baseUrl}}/api/v1/applications
+
+### Create deployment
+POST {{baseUrl}}/api/v1/deployments
+Content-Type: application/json
+
+{
+  "application_id": "replace-with-created-application-id",
+  "environment": "staging",
+  "version": "v1.3.0",
+  "requested_by": "devops@company.com"
+}
+
+### List deployments
+GET {{baseUrl}}/api/v1/deployments
+
+### Mark deployment as succeeded
+PATCH {{baseUrl}}/api/v1/deployments/replace-with-created-deployment-id
+Content-Type: application/json
+
+{
+  "status": "succeeded"
+}

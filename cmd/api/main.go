@@ -1,30 +1,107 @@
 package main
 
 import (
-    "log"
-    "net/http"
-    "os"
+	"context"
+	"errors"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-    "hr-cloud-service/internal/controller"
-    "hr-cloud-service/internal/repository"
-    "hr-cloud-service/internal/server"
-    "hr-cloud-service/internal/service"
+	"hr-cloud-service/internal/controller"
+	"hr-cloud-service/internal/database"
+	"hr-cloud-service/internal/repository"
+	"hr-cloud-service/internal/server"
+	"hr-cloud-service/internal/service"
 )
 
 func main() {
-    port := os.Getenv("PORT")
-    if port == "" {
-        port = "8080"
-    }
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-    employeeRepository := repository.NewInMemoryEmployeeRepository()
-    employeeService := service.NewEmployeeService(employeeRepository)
-    employeeController := controller.NewEmployeeController(employeeService)
+	mongoURI := os.Getenv("MONGO_URI")
+	if mongoURI == "" {
+		mongoURI = "mongodb://localhost:27017"
+	}
 
-    router := server.NewRouter(employeeController)
+	mongoDatabase := os.Getenv("MONGO_DATABASE")
+	if mongoDatabase == "" {
+		mongoDatabase = "hr_cloud"
+	}
 
-    log.Printf("HR Cloud Service listening on :%s", port)
-    if err := http.ListenAndServe(":"+port, router); err != nil {
-        log.Fatal(err)
-    }
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	db, disconnect, err := database.ConnectMongo(ctx, database.MongoConfig{
+		URI:      mongoURI,
+		Database: mongoDatabase,
+	})
+	if err != nil {
+		log.Fatalf("could not connect to MongoDB: %v", err)
+	}
+	defer func() {
+		if err := disconnect(context.Background()); err != nil {
+			log.Printf("could not disconnect MongoDB: %v", err)
+		}
+	}()
+
+	indexCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := database.EnsureMongoIndexes(indexCtx, db); err != nil {
+		log.Fatalf("could not ensure MongoDB indexes: %v", err)
+	}
+
+	employeeRepository := repository.NewMongoEmployeeRepository(db)
+	applicationRepository := repository.NewMongoApplicationRepository(db)
+	deploymentRepository := repository.NewMongoDeploymentRepository(db)
+
+	employeeService := service.NewEmployeeService(employeeRepository)
+	applicationService := service.NewApplicationService(applicationRepository)
+	deploymentService := service.NewDeploymentService(applicationRepository, deploymentRepository)
+
+	healthController := controller.NewHealthController(db)
+	employeeController := controller.NewEmployeeController(employeeService)
+	applicationController := controller.NewApplicationController(applicationService)
+	deploymentController := controller.NewDeploymentController(deploymentService)
+
+	router := server.NewRouter(healthController, employeeController, applicationController, deploymentController)
+
+	httpServer := &http.Server{
+		Addr:              ":" + port,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	log.Printf("connected to MongoDB database %q", mongoDatabase)
+	log.Printf("HR Cloud DevOps Service listening on :%s", port)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- httpServer.ListenAndServe()
+	}()
+
+	stopCh := make(chan os.Signal, 1)
+	signal.Notify(stopCh, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-errCh:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatal(err)
+		}
+	case <-stopCh:
+		log.Println("shutdown signal received")
+	}
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("could not shutdown server cleanly: %v", err)
+	}
+
+	log.Println("server stopped")
 }
