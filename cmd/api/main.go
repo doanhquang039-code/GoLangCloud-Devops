@@ -55,6 +55,12 @@ func main() {
 		log.Fatalf("could not ensure MongoDB indexes: %v", err)
 	}
 
+	seedCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := database.SeedMongoData(seedCtx, db); err != nil {
+		log.Fatalf("could not seed MongoDB data: %v", err)
+	}
+
 	employeeRepository := repository.NewMongoEmployeeRepository(db)
 	applicationRepository := repository.NewMongoApplicationRepository(db)
 	clusterRepository := repository.NewMongoClusterRepository(db)
