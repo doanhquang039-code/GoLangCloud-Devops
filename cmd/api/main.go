@@ -58,25 +58,31 @@ func main() {
 	employeeRepository := repository.NewMongoEmployeeRepository(db)
 	applicationRepository := repository.NewMongoApplicationRepository(db)
 	clusterRepository := repository.NewMongoClusterRepository(db)
+	environmentRepository := repository.NewMongoEnvironmentRepository(db)
 	deploymentRepository := repository.NewMongoDeploymentRepository(db)
 	pipelineRepository := repository.NewMongoPipelineRepository(db)
+	incidentRepository := repository.NewMongoIncidentRepository(db)
 
 	employeeService := service.NewEmployeeService(employeeRepository)
 	applicationService := service.NewApplicationService(applicationRepository)
 	clusterService := service.NewClusterService(clusterRepository)
+	environmentService := service.NewEnvironmentService(applicationRepository, clusterRepository, environmentRepository)
 	deploymentService := service.NewDeploymentService(applicationRepository, clusterRepository, deploymentRepository)
 	pipelineService := service.NewPipelineService(applicationRepository, pipelineRepository)
-	platformService := service.NewPlatformService(applicationRepository, clusterRepository, deploymentRepository, pipelineRepository)
+	incidentService := service.NewIncidentService(applicationRepository, clusterRepository, deploymentRepository, incidentRepository)
+	platformService := service.NewPlatformService(applicationRepository, clusterRepository, environmentRepository, deploymentRepository, pipelineRepository, incidentRepository)
 
 	healthController := controller.NewHealthController(db)
 	employeeController := controller.NewEmployeeController(employeeService)
 	applicationController := controller.NewApplicationController(applicationService)
 	clusterController := controller.NewClusterController(clusterService)
+	environmentController := controller.NewEnvironmentController(environmentService)
 	deploymentController := controller.NewDeploymentController(deploymentService)
 	pipelineController := controller.NewPipelineController(pipelineService)
+	incidentController := controller.NewIncidentController(incidentService)
 	platformController := controller.NewPlatformController(platformService)
 
-	router := server.NewRouter(healthController, employeeController, applicationController, clusterController, deploymentController, pipelineController, platformController)
+	router := server.NewRouter(healthController, employeeController, applicationController, clusterController, environmentController, deploymentController, pipelineController, incidentController, platformController)
 
 	httpServer := &http.Server{
 		Addr:              ":" + port,

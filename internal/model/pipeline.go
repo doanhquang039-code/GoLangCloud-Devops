@@ -11,14 +11,21 @@ type PipelineRun struct {
 	Status        string          `json:"status" bson:"status"`
 	Stages        []PipelineStage `json:"stages" bson:"stages"`
 	StartedAt     time.Time       `json:"started_at" bson:"started_at"`
-	FinishedAt    time.Time       `json:"finished_at,omitempty" bson:"finished_at,omitempty"`
+	FinishedAt    *time.Time      `json:"finished_at,omitempty" bson:"finished_at,omitempty"`
 }
 
 type PipelineStage struct {
 	Name      string    `json:"name" bson:"name"`
 	Status    string    `json:"status" bson:"status"`
 	StartedAt time.Time `json:"started_at" bson:"started_at"`
-	EndedAt   time.Time `json:"ended_at,omitempty" bson:"ended_at,omitempty"`
+	EndedAt   *time.Time `json:"ended_at,omitempty" bson:"ended_at,omitempty"`
+}
+
+type PipelineRunFilter struct {
+	ApplicationID string
+	Branch        string
+	Status        string
+	TriggeredBy   string
 }
 
 type CreatePipelineRunRequest struct {

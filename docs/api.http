@@ -20,6 +20,17 @@ Content-Type: application/json
 ### List employees
 GET {{baseUrl}}/api/v1/employees
 
+### Update employee
+PUT {{baseUrl}}/api/v1/employees/replace-with-created-employee-id
+Content-Type: application/json
+
+{
+  "name": "Nguyen Van A",
+  "email": "a@example.com",
+  "department": "Platform Engineering",
+  "title": "Senior Backend Engineer"
+}
+
 ### Create application
 POST {{baseUrl}}/api/v1/applications
 Content-Type: application/json
@@ -43,6 +54,26 @@ Content-Type: application/json
 ### List applications
 GET {{baseUrl}}/api/v1/applications
 
+### Update application
+PUT {{baseUrl}}/api/v1/applications/replace-with-created-application-id
+Content-Type: application/json
+
+{
+  "name": "payroll-api",
+  "repository": "github.com/company/payroll-api",
+  "runtime": "go1.22",
+  "owner_team": "platform",
+  "criticality": "critical",
+  "port": 8080,
+  "replicas": 4,
+  "health_endpoint": "/readyz",
+  "environment": {
+    "LOG_LEVEL": "debug",
+    "FEATURE_FLAGS": "payroll-v2"
+  },
+  "tags": ["go", "payroll", "backend", "tier-1"]
+}
+
 ### Create cluster
 POST {{baseUrl}}/api/v1/clusters
 Content-Type: application/json
@@ -59,12 +90,68 @@ Content-Type: application/json
 ### List clusters
 GET {{baseUrl}}/api/v1/clusters
 
+### List ready AWS clusters in Singapore
+GET {{baseUrl}}/api/v1/clusters?provider=aws&region=ap-southeast-1&status=ready
+
+### Update cluster
+PUT {{baseUrl}}/api/v1/clusters/replace-with-created-cluster-id
+Content-Type: application/json
+
+{
+  "name": "eks-staging-ap-southeast-1",
+  "provider": "aws",
+  "region": "ap-southeast-1",
+  "endpoint": "https://staging.example.eks.amazonaws.com",
+  "version": "1.31",
+  "status": "maintenance"
+}
+
 ### Mark cluster degraded
 PATCH {{baseUrl}}/api/v1/clusters/replace-with-created-cluster-id
 Content-Type: application/json
 
 {
   "status": "degraded"
+}
+
+### Create environment
+POST {{baseUrl}}/api/v1/environments
+Content-Type: application/json
+
+{
+  "name": "payroll-staging",
+  "type": "staging",
+  "application_id": "replace-with-created-application-id",
+  "cluster_id": "replace-with-created-cluster-id",
+  "namespace": "hr-staging",
+  "status": "active",
+  "variables": {
+    "LOG_LEVEL": "debug",
+    "FEATURE_FLAGS": "payroll-v2"
+  }
+}
+
+### List environments
+GET {{baseUrl}}/api/v1/environments
+
+### List active staging environments
+GET {{baseUrl}}/api/v1/environments?type=staging&status=active
+
+### Update environment
+PUT {{baseUrl}}/api/v1/environments/replace-with-created-environment-id
+Content-Type: application/json
+
+{
+  "name": "payroll-staging",
+  "type": "staging",
+  "application_id": "replace-with-created-application-id",
+  "cluster_id": "replace-with-created-cluster-id",
+  "namespace": "hr-staging",
+  "status": "active",
+  "variables": {
+    "LOG_LEVEL": "info",
+    "FEATURE_FLAGS": "payroll-v2"
+  }
 }
 
 ### Create deployment
@@ -83,6 +170,23 @@ Content-Type: application/json
 
 ### List deployments
 GET {{baseUrl}}/api/v1/deployments
+
+### List running staging deployments
+GET {{baseUrl}}/api/v1/deployments?environment=staging&status=running
+
+### Update deployment
+PUT {{baseUrl}}/api/v1/deployments/replace-with-created-deployment-id
+Content-Type: application/json
+
+{
+  "application_id": "replace-with-created-application-id",
+  "cluster_id": "replace-with-created-cluster-id",
+  "namespace": "hr-staging",
+  "environment": "staging",
+  "version": "v1.3.1",
+  "strategy": "blue-green",
+  "requested_by": "devops@company.com"
+}
 
 ### Mark deployment as succeeded
 PATCH {{baseUrl}}/api/v1/deployments/replace-with-created-deployment-id
@@ -107,12 +211,44 @@ Content-Type: application/json
 ### List pipeline runs
 GET {{baseUrl}}/api/v1/pipelines
 
+### List running main branch pipelines
+GET {{baseUrl}}/api/v1/pipelines?branch=main&status=running
+
 ### Mark pipeline as succeeded
 PATCH {{baseUrl}}/api/v1/pipelines/replace-with-created-pipeline-id
 Content-Type: application/json
 
 {
   "status": "succeeded"
+}
+
+### Create incident
+POST {{baseUrl}}/api/v1/incidents
+Content-Type: application/json
+
+{
+  "title": "Payroll API error rate elevated",
+  "summary": "5xx responses are above the platform threshold after the latest rollout.",
+  "severity": "sev2",
+  "status": "investigating",
+  "application_id": "replace-with-created-application-id",
+  "cluster_id": "replace-with-created-cluster-id",
+  "deployment_id": "replace-with-created-deployment-id",
+  "owner_team": "platform"
+}
+
+### List incidents
+GET {{baseUrl}}/api/v1/incidents
+
+### List active platform incidents
+GET {{baseUrl}}/api/v1/incidents?owner_team=platform&status=investigating
+
+### Resolve incident
+PATCH {{baseUrl}}/api/v1/incidents/replace-with-created-incident-id
+Content-Type: application/json
+
+{
+  "status": "resolved"
 }
 
 ### Platform summary

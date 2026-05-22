@@ -13,10 +13,28 @@ type Deployment struct {
 	Status        string    `json:"status" bson:"status"`
 	RequestedBy   string    `json:"requested_by" bson:"requested_by"`
 	StartedAt     time.Time `json:"started_at" bson:"started_at"`
-	FinishedAt    time.Time `json:"finished_at,omitempty" bson:"finished_at,omitempty"`
+	FinishedAt    *time.Time `json:"finished_at,omitempty" bson:"finished_at,omitempty"`
+}
+
+type DeploymentFilter struct {
+	ApplicationID string
+	ClusterID     string
+	Namespace     string
+	Environment   string
+	Status        string
 }
 
 type CreateDeploymentRequest struct {
+	ApplicationID string `json:"application_id"`
+	ClusterID     string `json:"cluster_id"`
+	Namespace     string `json:"namespace"`
+	Environment   string `json:"environment"`
+	Version       string `json:"version"`
+	Strategy      string `json:"strategy"`
+	RequestedBy   string `json:"requested_by"`
+}
+
+type UpdateDeploymentRequest struct {
 	ApplicationID string `json:"application_id"`
 	ClusterID     string `json:"cluster_id"`
 	Namespace     string `json:"namespace"`

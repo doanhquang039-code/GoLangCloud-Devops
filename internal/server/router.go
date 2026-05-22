@@ -11,8 +11,10 @@ func NewRouter(
 	employeeController *controller.EmployeeController,
 	applicationController *controller.ApplicationController,
 	clusterController *controller.ClusterController,
+	environmentController *controller.EnvironmentController,
 	deploymentController *controller.DeploymentController,
 	pipelineController *controller.PipelineController,
+	incidentController *controller.IncidentController,
 	platformController *controller.PlatformController,
 ) http.Handler {
 	mux := http.NewServeMux()
@@ -26,10 +28,14 @@ func NewRouter(
 	mux.HandleFunc("/api/v1/applications/", applicationController.Show)
 	mux.HandleFunc("/api/v1/clusters", clusterController.Index)
 	mux.HandleFunc("/api/v1/clusters/", clusterController.ShowOrUpdateStatus)
+	mux.HandleFunc("/api/v1/environments", environmentController.Index)
+	mux.HandleFunc("/api/v1/environments/", environmentController.ShowOrUpdate)
 	mux.HandleFunc("/api/v1/deployments", deploymentController.Index)
 	mux.HandleFunc("/api/v1/deployments/", deploymentController.ShowOrUpdateStatus)
 	mux.HandleFunc("/api/v1/pipelines", pipelineController.Index)
 	mux.HandleFunc("/api/v1/pipelines/", pipelineController.ShowOrUpdateStatus)
+	mux.HandleFunc("/api/v1/incidents", incidentController.Index)
+	mux.HandleFunc("/api/v1/incidents/", incidentController.ShowOrUpdate)
 	mux.HandleFunc("/api/v1/platform/summary", platformController.Summary)
 
 	return WithRequestLogging(mux)

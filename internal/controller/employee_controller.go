@@ -41,12 +41,19 @@ func (c *EmployeeController) GetEmployees(w http.ResponseWriter, r *http.Request
 }
 
 func (c *EmployeeController) Show(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
-
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/employees/")
+
+	switch r.Method {
+	case http.MethodGet:
+		c.GetEmployee(w, r, id)
+	case http.MethodPut:
+		c.UpdateEmployee(w, r, id)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+func (c *EmployeeController) GetEmployee(w http.ResponseWriter, r *http.Request, id string) {
 	employee, err := c.employeeService.GetEmployeeByID(r.Context(), id)
 	if errors.Is(err, repository.ErrEmployeeNotFound) {
 		writeError(w, http.StatusNotFound, "employee not found")
@@ -54,6 +61,32 @@ func (c *EmployeeController) Show(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, employee)
+}
+
+func (c *EmployeeController) UpdateEmployee(w http.ResponseWriter, r *http.Request, id string) {
+	defer r.Body.Close()
+
+	var request model.UpdateEmployeeRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+
+	employee, err := c.employeeService.UpdateEmployee(r.Context(), id, request)
+	if errors.Is(err, service.ErrInvalidEmployee) {
+		writeError(w, http.StatusBadRequest, "name, email, department and title are required")
+		return
+	}
+	if errors.Is(err, repository.ErrEmployeeNotFound) {
+		writeError(w, http.StatusNotFound, "employee not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not update employee")
 		return
 	}
 

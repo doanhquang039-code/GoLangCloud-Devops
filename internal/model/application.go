@@ -30,3 +30,16 @@ type CreateApplicationRequest struct {
 	Environment    map[string]string `json:"environment"`
 	Tags           []string          `json:"tags"`
 }
+
+type UpdateApplicationRequest struct {
+	Name           string            `json:"name"`
+	Repository     string            `json:"repository"`
+	Runtime        string            `json:"runtime"`
+	OwnerTeam      string            `json:"owner_team"`
+	Criticality    string            `json:"criticality"`
+	Port           int               `json:"port"`
+	Replicas       int               `json:"replicas"`
+	HealthEndpoint string            `json:"health_endpoint"`
+	Environment    map[string]string `json:"environment"`
+	Tags           []string          `json:"tags"`
+}

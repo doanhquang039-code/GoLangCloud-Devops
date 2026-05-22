@@ -31,7 +31,16 @@ func (c *PipelineController) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *PipelineController) GetPipelineRuns(w http.ResponseWriter, r *http.Request) {
-	pipelineRuns, err := c.pipelineService.GetPipelineRuns(r.Context())
+	pipelineRuns, err := c.pipelineService.GetPipelineRuns(r.Context(), model.PipelineRunFilter{
+		ApplicationID: r.URL.Query().Get("application_id"),
+		Branch:        r.URL.Query().Get("branch"),
+		Status:        r.URL.Query().Get("status"),
+		TriggeredBy:   r.URL.Query().Get("triggered_by"),
+	})
+	if errors.Is(err, service.ErrInvalidPipelineRun) {
+		writeError(w, http.StatusBadRequest, "status must be running, succeeded, failed or cancelled")
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not list pipeline runs")
 		return

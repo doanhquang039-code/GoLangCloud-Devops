@@ -18,3 +18,10 @@ type CreateEmployeeRequest struct {
 	Department string `json:"department"`
 	Title      string `json:"title"`
 }
+
+type UpdateEmployeeRequest struct {
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	Department string `json:"department"`
+	Title      string `json:"title"`
+}

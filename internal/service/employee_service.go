@@ -56,3 +56,28 @@ func (s *EmployeeService) CreateEmployee(ctx context.Context, request model.Crea
 
 	return s.employeeRepository.Save(ctx, employee)
 }
+
+func (s *EmployeeService) UpdateEmployee(ctx context.Context, id string, request model.UpdateEmployeeRequest) (model.Employee, error) {
+	id = strings.TrimSpace(id)
+	request.Name = strings.TrimSpace(request.Name)
+	request.Email = strings.TrimSpace(request.Email)
+	request.Department = strings.TrimSpace(request.Department)
+	request.Title = strings.TrimSpace(request.Title)
+
+	if id == "" || request.Name == "" || request.Email == "" || request.Department == "" || request.Title == "" {
+		return model.Employee{}, ErrInvalidEmployee
+	}
+
+	employee, err := s.employeeRepository.FindByID(ctx, id)
+	if err != nil {
+		return model.Employee{}, err
+	}
+
+	employee.Name = request.Name
+	employee.Email = request.Email
+	employee.Department = request.Department
+	employee.Title = request.Title
+	employee.UpdatedAt = time.Now().UTC()
+
+	return s.employeeRepository.Save(ctx, employee)
+}

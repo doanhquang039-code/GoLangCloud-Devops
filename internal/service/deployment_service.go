@@ -31,8 +31,47 @@ func NewDeploymentService(
 	}
 }
 
-func (s *DeploymentService) GetDeployments(ctx context.Context) ([]model.Deployment, error) {
-	return s.deploymentRepository.FindAll(ctx)
+func (s *DeploymentService) GetDeployments(ctx context.Context, filter model.DeploymentFilter) ([]model.Deployment, error) {
+	filter.ApplicationID = strings.TrimSpace(filter.ApplicationID)
+	filter.ClusterID = strings.TrimSpace(filter.ClusterID)
+	filter.Namespace = strings.TrimSpace(filter.Namespace)
+	filter.Environment = strings.TrimSpace(filter.Environment)
+	filter.Status = strings.TrimSpace(filter.Status)
+
+	if filter.Status != "" && !isValidDeploymentStatus(filter.Status) {
+		return nil, ErrInvalidDeployment
+	}
+
+	deployments, err := s.deploymentRepository.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if filter.ApplicationID == "" && filter.ClusterID == "" && filter.Namespace == "" && filter.Environment == "" && filter.Status == "" {
+		return deployments, nil
+	}
+
+	filtered := make([]model.Deployment, 0, len(deployments))
+	for _, deployment := range deployments {
+		if filter.ApplicationID != "" && deployment.ApplicationID != filter.ApplicationID {
+			continue
+		}
+		if filter.ClusterID != "" && deployment.ClusterID != filter.ClusterID {
+			continue
+		}
+		if filter.Namespace != "" && deployment.Namespace != filter.Namespace {
+			continue
+		}
+		if filter.Environment != "" && deployment.Environment != filter.Environment {
+			continue
+		}
+		if filter.Status != "" && deployment.Status != filter.Status {
+			continue
+		}
+		filtered = append(filtered, deployment)
+	}
+
+	return filtered, nil
 }
 
 func (s *DeploymentService) GetDeploymentByID(ctx context.Context, id string) (model.Deployment, error) {
@@ -93,12 +132,55 @@ func isValidDeploymentStrategy(strategy string) bool {
 	return strategy == "rolling" || strategy == "blue-green" || strategy == "canary"
 }
 
-func (s *DeploymentService) UpdateDeploymentStatus(ctx context.Context, id string, request model.UpdateDeploymentStatusRequest) (model.Deployment, error) {
-	status := strings.TrimSpace(request.Status)
-	if strings.TrimSpace(id) == "" || status == "" {
+func (s *DeploymentService) UpdateDeployment(ctx context.Context, id string, request model.UpdateDeploymentRequest) (model.Deployment, error) {
+	id = strings.TrimSpace(id)
+	request.ApplicationID = strings.TrimSpace(request.ApplicationID)
+	request.ClusterID = strings.TrimSpace(request.ClusterID)
+	request.Namespace = strings.TrimSpace(request.Namespace)
+	request.Environment = strings.TrimSpace(request.Environment)
+	request.Version = strings.TrimSpace(request.Version)
+	request.Strategy = strings.TrimSpace(request.Strategy)
+	request.RequestedBy = strings.TrimSpace(request.RequestedBy)
+
+	if id == "" || request.ApplicationID == "" || request.ClusterID == "" || request.Environment == "" || request.Version == "" || request.RequestedBy == "" {
 		return model.Deployment{}, ErrInvalidDeployment
 	}
-	if status != "running" && status != "succeeded" && status != "failed" {
+	if request.Namespace == "" {
+		request.Namespace = "default"
+	}
+	if request.Strategy == "" {
+		request.Strategy = "rolling"
+	}
+	if !isValidDeploymentStrategy(request.Strategy) {
+		return model.Deployment{}, ErrInvalidDeployment
+	}
+
+	if _, err := s.applicationRepository.FindByID(ctx, request.ApplicationID); err != nil {
+		return model.Deployment{}, err
+	}
+	if _, err := s.clusterRepository.FindByID(ctx, request.ClusterID); err != nil {
+		return model.Deployment{}, err
+	}
+
+	deployment, err := s.deploymentRepository.FindByID(ctx, id)
+	if err != nil {
+		return model.Deployment{}, err
+	}
+
+	deployment.ApplicationID = request.ApplicationID
+	deployment.ClusterID = request.ClusterID
+	deployment.Namespace = request.Namespace
+	deployment.Environment = request.Environment
+	deployment.Version = request.Version
+	deployment.Strategy = request.Strategy
+	deployment.RequestedBy = request.RequestedBy
+
+	return s.deploymentRepository.Save(ctx, deployment)
+}
+
+func (s *DeploymentService) UpdateDeploymentStatus(ctx context.Context, id string, request model.UpdateDeploymentStatusRequest) (model.Deployment, error) {
+	status := strings.TrimSpace(request.Status)
+	if strings.TrimSpace(id) == "" || !isValidDeploymentStatus(status) {
 		return model.Deployment{}, ErrInvalidDeployment
 	}
 
@@ -109,8 +191,13 @@ func (s *DeploymentService) UpdateDeploymentStatus(ctx context.Context, id strin
 
 	deployment.Status = status
 	if status == "succeeded" || status == "failed" {
-		deployment.FinishedAt = time.Now().UTC()
+		finishedAt := time.Now().UTC()
+		deployment.FinishedAt = &finishedAt
 	}
 
 	return s.deploymentRepository.Save(ctx, deployment)
+}
+
+func isValidDeploymentStatus(status string) bool {
+	return status == "running" || status == "succeeded" || status == "failed"
 }

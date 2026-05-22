@@ -28,8 +28,43 @@ func NewPipelineService(
 	}
 }
 
-func (s *PipelineService) GetPipelineRuns(ctx context.Context) ([]model.PipelineRun, error) {
-	return s.pipelineRepository.FindAll(ctx)
+func (s *PipelineService) GetPipelineRuns(ctx context.Context, filter model.PipelineRunFilter) ([]model.PipelineRun, error) {
+	filter.ApplicationID = strings.TrimSpace(filter.ApplicationID)
+	filter.Branch = strings.TrimSpace(filter.Branch)
+	filter.Status = strings.TrimSpace(filter.Status)
+	filter.TriggeredBy = strings.TrimSpace(filter.TriggeredBy)
+
+	if filter.Status != "" && !isValidPipelineRunStatus(filter.Status) {
+		return nil, ErrInvalidPipelineRun
+	}
+
+	pipelineRuns, err := s.pipelineRepository.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if filter.ApplicationID == "" && filter.Branch == "" && filter.Status == "" && filter.TriggeredBy == "" {
+		return pipelineRuns, nil
+	}
+
+	filtered := make([]model.PipelineRun, 0, len(pipelineRuns))
+	for _, pipelineRun := range pipelineRuns {
+		if filter.ApplicationID != "" && pipelineRun.ApplicationID != filter.ApplicationID {
+			continue
+		}
+		if filter.Branch != "" && pipelineRun.Branch != filter.Branch {
+			continue
+		}
+		if filter.Status != "" && pipelineRun.Status != filter.Status {
+			continue
+		}
+		if filter.TriggeredBy != "" && !strings.EqualFold(pipelineRun.TriggeredBy, filter.TriggeredBy) {
+			continue
+		}
+		filtered = append(filtered, pipelineRun)
+	}
+
+	return filtered, nil
 }
 
 func (s *PipelineService) GetPipelineRunByID(ctx context.Context, id string) (model.PipelineRun, error) {
@@ -83,7 +118,7 @@ func (s *PipelineService) UpdatePipelineRunStatus(ctx context.Context, id string
 	now := time.Now().UTC()
 	pipelineRun.Status = status
 	if status != "running" {
-		pipelineRun.FinishedAt = now
+		pipelineRun.FinishedAt = &now
 		pipelineRun.Stages = finishPipelineStages(pipelineRun.Stages, status, now)
 	}
 
@@ -124,7 +159,7 @@ func finishPipelineStages(stages []model.PipelineStage, status string, now time.
 
 	for i := range stages {
 		stages[i].Status = stageStatus
-		stages[i].EndedAt = now
+		stages[i].EndedAt = &now
 	}
 
 	return stages

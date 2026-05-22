@@ -21,8 +21,39 @@ func NewClusterService(clusterRepository repository.ClusterRepository) *ClusterS
 	return &ClusterService{clusterRepository: clusterRepository}
 }
 
-func (s *ClusterService) GetClusters(ctx context.Context) ([]model.Cluster, error) {
-	return s.clusterRepository.FindAll(ctx)
+func (s *ClusterService) GetClusters(ctx context.Context, filter model.ClusterFilter) ([]model.Cluster, error) {
+	filter.Provider = strings.TrimSpace(filter.Provider)
+	filter.Region = strings.TrimSpace(filter.Region)
+	filter.Status = strings.TrimSpace(filter.Status)
+
+	if filter.Status != "" && !isValidClusterStatus(filter.Status) {
+		return nil, ErrInvalidCluster
+	}
+
+	clusters, err := s.clusterRepository.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if filter.Provider == "" && filter.Region == "" && filter.Status == "" {
+		return clusters, nil
+	}
+
+	filtered := make([]model.Cluster, 0, len(clusters))
+	for _, cluster := range clusters {
+		if filter.Provider != "" && !strings.EqualFold(cluster.Provider, filter.Provider) {
+			continue
+		}
+		if filter.Region != "" && !strings.EqualFold(cluster.Region, filter.Region) {
+			continue
+		}
+		if filter.Status != "" && cluster.Status != filter.Status {
+			continue
+		}
+		filtered = append(filtered, cluster)
+	}
+
+	return filtered, nil
 }
 
 func (s *ClusterService) GetClusterByID(ctx context.Context, id string) (model.Cluster, error) {
@@ -63,6 +94,41 @@ func (s *ClusterService) CreateCluster(ctx context.Context, request model.Create
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
+
+	return s.clusterRepository.Save(ctx, cluster)
+}
+
+func (s *ClusterService) UpdateCluster(ctx context.Context, id string, request model.UpdateClusterRequest) (model.Cluster, error) {
+	id = strings.TrimSpace(id)
+	request.Name = strings.TrimSpace(request.Name)
+	request.Provider = strings.TrimSpace(request.Provider)
+	request.Region = strings.TrimSpace(request.Region)
+	request.Endpoint = strings.TrimSpace(request.Endpoint)
+	request.Version = strings.TrimSpace(request.Version)
+	request.Status = strings.TrimSpace(request.Status)
+
+	if id == "" || request.Name == "" || request.Provider == "" || request.Region == "" || request.Endpoint == "" || request.Version == "" {
+		return model.Cluster{}, ErrInvalidCluster
+	}
+	if request.Status == "" {
+		request.Status = "ready"
+	}
+	if !isValidClusterStatus(request.Status) {
+		return model.Cluster{}, ErrInvalidCluster
+	}
+
+	cluster, err := s.clusterRepository.FindByID(ctx, id)
+	if err != nil {
+		return model.Cluster{}, err
+	}
+
+	cluster.Name = request.Name
+	cluster.Provider = request.Provider
+	cluster.Region = request.Region
+	cluster.Endpoint = request.Endpoint
+	cluster.Version = request.Version
+	cluster.Status = request.Status
+	cluster.UpdatedAt = time.Now().UTC()
 
 	return s.clusterRepository.Save(ctx, cluster)
 }

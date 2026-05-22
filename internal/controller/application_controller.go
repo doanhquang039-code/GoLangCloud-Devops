@@ -41,12 +41,19 @@ func (c *ApplicationController) GetApplications(w http.ResponseWriter, r *http.R
 }
 
 func (c *ApplicationController) Show(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-		return
-	}
-
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/applications/")
+
+	switch r.Method {
+	case http.MethodGet:
+		c.GetApplication(w, r, id)
+	case http.MethodPut:
+		c.UpdateApplication(w, r, id)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+func (c *ApplicationController) GetApplication(w http.ResponseWriter, r *http.Request, id string) {
 	application, err := c.applicationService.GetApplicationByID(r.Context(), id)
 	if errors.Is(err, repository.ErrApplicationNotFound) {
 		writeError(w, http.StatusNotFound, "application not found")
@@ -54,6 +61,32 @@ func (c *ApplicationController) Show(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, application)
+}
+
+func (c *ApplicationController) UpdateApplication(w http.ResponseWriter, r *http.Request, id string) {
+	defer r.Body.Close()
+
+	var request model.UpdateApplicationRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+
+	application, err := c.applicationService.UpdateApplication(r.Context(), id, request)
+	if errors.Is(err, service.ErrInvalidApplication) {
+		writeError(w, http.StatusBadRequest, "name, repository, runtime and owner_team are required; port must be 1-65535 and replicas must be positive")
+		return
+	}
+	if errors.Is(err, repository.ErrApplicationNotFound) {
+		writeError(w, http.StatusNotFound, "application not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not update application")
 		return
 	}
 

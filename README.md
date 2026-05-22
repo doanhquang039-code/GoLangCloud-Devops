@@ -42,8 +42,10 @@ This project now has cloud and DevOps-oriented modules:
 - Employees: HR data owned by a team.
 - Applications: services/microservices managed by DevOps, including runtime, port, replicas, environment variables, health endpoint, and tags.
 - Clusters: Kubernetes-style target clusters with provider, region, API endpoint, version, and operational status.
+- Environments: runtime environments that map applications to clusters and namespaces, with environment variables and lifecycle status.
 - Deployments: deployment records for each application, cluster, namespace, environment, version, and rollout strategy.
 - Pipeline runs: CI/CD executions for each application, including branch, commit, stages, trigger owner, and final status.
+- Incidents: operational incidents linked to applications, clusters, or deployments, with severity, status, owner team, and resolution time.
 - Platform summary: lightweight operational counts grouped by deployment status.
 
 ## Endpoints
@@ -55,19 +57,28 @@ GET  /readyz
 GET  /api/v1/employees
 POST /api/v1/employees
 GET  /api/v1/employees/{id}
+PUT  /api/v1/employees/{id}
 
 GET  /api/v1/applications
 POST /api/v1/applications
 GET  /api/v1/applications/{id}
+PUT  /api/v1/applications/{id}
 
 GET   /api/v1/clusters
 POST  /api/v1/clusters
 GET   /api/v1/clusters/{id}
+PUT   /api/v1/clusters/{id}
 PATCH /api/v1/clusters/{id}
+
+GET   /api/v1/environments
+POST  /api/v1/environments
+GET   /api/v1/environments/{id}
+PUT   /api/v1/environments/{id}
 
 GET   /api/v1/deployments
 POST  /api/v1/deployments
 GET   /api/v1/deployments/{id}
+PUT   /api/v1/deployments/{id}
 PATCH /api/v1/deployments/{id}
 
 GET   /api/v1/pipelines
@@ -75,7 +86,43 @@ POST  /api/v1/pipelines
 GET   /api/v1/pipelines/{id}
 PATCH /api/v1/pipelines/{id}
 
+GET   /api/v1/incidents
+POST  /api/v1/incidents
+GET   /api/v1/incidents/{id}
+PUT   /api/v1/incidents/{id}
+PATCH /api/v1/incidents/{id}
+
 GET  /api/v1/platform/summary
+```
+
+`GET /api/v1/clusters` supports optional filters:
+
+```http
+GET /api/v1/clusters?provider=aws&region=ap-southeast-1&status=ready
+```
+
+`GET /api/v1/environments` supports optional filters:
+
+```http
+GET /api/v1/environments?application_id=app-123&cluster_id=cls-123&type=staging&status=active
+```
+
+`GET /api/v1/deployments` supports optional filters:
+
+```http
+GET /api/v1/deployments?application_id=app-123&cluster_id=cls-123&environment=staging&status=running
+```
+
+`GET /api/v1/pipelines` supports optional filters:
+
+```http
+GET /api/v1/pipelines?application_id=app-123&branch=main&status=running&triggered_by=devops@example.com
+```
+
+`GET /api/v1/incidents` supports optional filters:
+
+```http
+GET /api/v1/incidents?severity=sev2&status=investigating&owner_team=platform
 ```
 
 Example create employee request:
@@ -135,11 +182,42 @@ Example create deployment request:
 }
 ```
 
+Example create environment request:
+
+```json
+{
+  "name": "payroll-staging",
+  "type": "staging",
+  "application_id": "app-123",
+  "cluster_id": "cls-123",
+  "namespace": "hr-staging",
+  "status": "active",
+  "variables": {
+    "LOG_LEVEL": "debug"
+  }
+}
+```
+
 Example update deployment status request:
 
 ```json
 {
   "status": "succeeded"
+}
+```
+
+Example create incident request:
+
+```json
+{
+  "title": "Payroll API error rate elevated",
+  "summary": "5xx responses are above the platform threshold after the latest rollout.",
+  "severity": "sev2",
+  "status": "investigating",
+  "application_id": "app-123",
+  "cluster_id": "cls-123",
+  "deployment_id": "dep-123",
+  "owner_team": "platform"
 }
 ```
 
