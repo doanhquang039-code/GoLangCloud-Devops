@@ -47,12 +47,16 @@ This project now has cloud and DevOps-oriented modules:
 - Pipeline runs: CI/CD executions for each application, including branch, commit, stages, trigger owner, and final status.
 - Incidents: operational incidents linked to applications, clusters, or deployments, with severity, status, owner team, and resolution time.
 - Platform summary: lightweight operational counts grouped by deployment status.
+- Platform scorecards: per-application operational readiness, release health, incident posture, environment coverage, and duration metrics.
+- Environment drift detection: compares desired application variables with actual environment variables.
+- Observability: Prometheus-compatible HTTP metrics for request counts and latency.
 
 ## Endpoints
 
 ```http
 GET  /healthz
 GET  /readyz
+GET  /metrics
 
 GET  /api/v1/employees
 POST /api/v1/employees
@@ -93,6 +97,17 @@ PUT   /api/v1/incidents/{id}
 PATCH /api/v1/incidents/{id}
 
 GET  /api/v1/platform/summary
+GET  /api/v1/platform/scorecards
+GET  /api/v1/platform/environment-drift
+```
+
+`GET /metrics` exposes Prometheus text-format metrics:
+
+```text
+hr_cloud_service_up 1
+http_requests_total{method="GET",route="/api/v1/platform/scorecards",status="200"} 1
+http_request_duration_seconds_sum{method="GET",route="/api/v1/platform/scorecards",status="200"} 0.004215
+http_request_duration_seconds_count{method="GET",route="/api/v1/platform/scorecards",status="200"} 1
 ```
 
 `GET /api/v1/clusters` supports optional filters:
@@ -123,6 +138,57 @@ GET /api/v1/pipelines?application_id=app-123&branch=main&status=running&triggere
 
 ```http
 GET /api/v1/incidents?severity=sev2&status=investigating&owner_team=platform
+```
+
+`GET /api/v1/platform/scorecards` returns application-level DevOps readiness metrics:
+
+```json
+[
+  {
+    "application_id": "app-payroll-api",
+    "application_name": "payroll-api",
+    "owner_team": "platform",
+    "criticality": "high",
+    "environment_count": 2,
+    "active_environment_count": 2,
+    "cluster_count": 2,
+    "deployment_success_rate": 50,
+    "pipeline_success_rate": 100,
+    "open_incident_count": 1,
+    "operational_readiness_score": 40,
+    "risk_level": "high",
+    "risk_reasons": ["open incidents", "sev2 incident history", "deployment success rate below 80 percent"]
+  }
+]
+```
+
+`GET /api/v1/platform/environment-drift` returns runtime configuration drift reports:
+
+```json
+[
+  {
+    "environment_id": "env-payroll-prod",
+    "environment_name": "payroll-prod",
+    "application_id": "app-payroll-api",
+    "application_name": "payroll-api",
+    "missing_variables": [
+      {
+        "key": "FEATURE_AUDIT",
+        "expected_value": "enabled"
+      }
+    ],
+    "changed_variables": [
+      {
+        "key": "LOG_LEVEL",
+        "expected_value": "info",
+        "actual_value": "debug"
+      }
+    ],
+    "drift_score": 55,
+    "drift_level": "high",
+    "drift_reasons": ["missing baseline variables", "changed baseline variables"]
+  }
+]
 ```
 
 Example create employee request:
@@ -259,7 +325,9 @@ Open `docs/api.http` in VS Code or IntelliJ HTTP Client to call the sample APIs.
 The GitHub Actions workflow in `.github/workflows/ci.yml` runs:
 
 - `gofmt` check
+- `go vet ./...`
 - `go test ./...`
+- `govulncheck` dependency and code vulnerability scan
 - Docker image build
 
 ## Kubernetes
@@ -269,6 +337,33 @@ After building and pushing the image, update the image name in `deploy/k8s/deplo
 ```powershell
 kubectl apply -f .\deploy\k8s
 ```
+
+For clusters without Prometheus Operator, apply the core manifests without `servicemonitor.yaml`:
+
+```powershell
+kubectl apply -f .\deploy\k8s\namespace.yaml
+kubectl apply -f .\deploy\k8s\configmap.yaml
+kubectl apply -f .\deploy\k8s\secret.example.yaml
+kubectl apply -f .\deploy\k8s\deployment.yaml
+kubectl apply -f .\deploy\k8s\service.yaml
+kubectl apply -f .\deploy\k8s\hpa.yaml
+kubectl apply -f .\deploy\k8s\pdb.yaml
+kubectl apply -f .\deploy\k8s\networkpolicy.yaml
+```
+
+The Kubernetes manifests include:
+
+- ConfigMap-based runtime settings and a Secret-based MongoDB URI.
+- Restricted pod/container security contexts.
+- Rolling updates with zero unavailable pods.
+- Prometheus scrape annotations on the API pods.
+- A `ServiceMonitor` for clusters using Prometheus Operator.
+- A CPU-based `HorizontalPodAutoscaler` with 2 to 6 replicas.
+- A `PodDisruptionBudget` to keep at least one API pod available during voluntary disruptions.
+- A `NetworkPolicy` that limits API pod traffic to HTTP ingress, DNS egress, and MongoDB egress.
+
+If your cluster does not have Prometheus Operator installed, skip `deploy/k8s/servicemonitor.yaml` or install the CRD first.
+For production, replace `deploy/k8s/secret.example.yaml` with a real Secret from your secret manager or CI/CD pipeline before applying manifests.
 
 ## Note
 

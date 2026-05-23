@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hr-cloud-devops-service
+  namespace: hr-cloud
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: hr-cloud-devops-service

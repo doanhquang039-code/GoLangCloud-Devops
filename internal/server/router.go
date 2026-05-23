@@ -18,9 +18,11 @@ func NewRouter(
 	platformController *controller.PlatformController,
 ) http.Handler {
 	mux := http.NewServeMux()
+	metrics := NewMetrics()
 
 	mux.HandleFunc("/healthz", healthController.Health)
 	mux.HandleFunc("/readyz", healthController.Ready)
+	mux.HandleFunc("/metrics", metrics.Handler)
 
 	mux.HandleFunc("/api/v1/employees", employeeController.Index)
 	mux.HandleFunc("/api/v1/employees/", employeeController.Show)
@@ -37,6 +39,8 @@ func NewRouter(
 	mux.HandleFunc("/api/v1/incidents", incidentController.Index)
 	mux.HandleFunc("/api/v1/incidents/", incidentController.ShowOrUpdate)
 	mux.HandleFunc("/api/v1/platform/summary", platformController.Summary)
+	mux.HandleFunc("/api/v1/platform/scorecards", platformController.Scorecards)
+	mux.HandleFunc("/api/v1/platform/environment-drift", platformController.EnvironmentDrift)
 
-	return WithRequestLogging(mux)
+	return WithRequestLogging(metrics.Middleware(mux))
 }

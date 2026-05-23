@@ -6,6 +6,9 @@ GET {{baseUrl}}/healthz
 ### Readiness check
 GET {{baseUrl}}/readyz
 
+### Prometheus metrics
+GET {{baseUrl}}/metrics
+
 ### Create employee
 POST {{baseUrl}}/api/v1/employees
 Content-Type: application/json
@@ -253,3 +256,9 @@ Content-Type: application/json
 
 ### Platform summary
 GET {{baseUrl}}/api/v1/platform/summary
+
+### Platform application scorecards
+GET {{baseUrl}}/api/v1/platform/scorecards
+
+### Platform environment drift reports
+GET {{baseUrl}}/api/v1/platform/environment-drift

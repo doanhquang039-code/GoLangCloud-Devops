@@ -5,6 +5,11 @@ metadata:
   namespace: hr-cloud
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: hr-cloud-devops-service
@@ -12,20 +17,47 @@ spec:
     metadata:
       labels:
         app: hr-cloud-devops-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: api
           image: hr-cloud-devops-service:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8080
+            - name: http
+              containerPort: 8080
           env:
             - name: PORT
-              value: "8080"
+              valueFrom:
+                configMapKeyRef:
+                  name: hr-cloud-devops-service-config
+                  key: PORT
             - name: MONGO_URI
-              value: "mongodb://mongo:27017"
+              valueFrom:
+                secretKeyRef:
+                  name: hr-cloud-devops-service-secret
+                  key: MONGO_URI
             - name: MONGO_DATABASE
-              value: "hr_cloud"
+              valueFrom:
+                configMapKeyRef:
+                  name: hr-cloud-devops-service-config
+                  key: MONGO_DATABASE
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           readinessProbe:
             httpGet:
               path: /readyz
