@@ -14,6 +14,7 @@ type EmployeeRepository interface {
 	FindAll(ctx context.Context) ([]model.Employee, error)
 	FindByID(ctx context.Context, id string) (model.Employee, error)
 	Save(ctx context.Context, employee model.Employee) (model.Employee, error)
+	DeleteByID(ctx context.Context, id string) error
 }
 
 type InMemoryEmployeeRepository struct {
@@ -57,4 +58,16 @@ func (r *InMemoryEmployeeRepository) Save(ctx context.Context, employee model.Em
 
 	r.employees[employee.ID] = employee
 	return employee, nil
+}
+
+func (r *InMemoryEmployeeRepository) DeleteByID(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.employees[id]; !ok {
+		return ErrEmployeeNotFound
+	}
+
+	delete(r.employees, id)
+	return nil
 }

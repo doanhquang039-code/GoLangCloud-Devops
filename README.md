@@ -62,39 +62,46 @@ GET  /api/v1/employees
 POST /api/v1/employees
 GET  /api/v1/employees/{id}
 PUT  /api/v1/employees/{id}
+DELETE /api/v1/employees/{id}
 
 GET  /api/v1/applications
 POST /api/v1/applications
 GET  /api/v1/applications/{id}
 PUT  /api/v1/applications/{id}
+DELETE /api/v1/applications/{id}
 
 GET   /api/v1/clusters
 POST  /api/v1/clusters
 GET   /api/v1/clusters/{id}
 PUT   /api/v1/clusters/{id}
 PATCH /api/v1/clusters/{id}
+DELETE /api/v1/clusters/{id}
 
 GET   /api/v1/environments
 POST  /api/v1/environments
 GET   /api/v1/environments/{id}
 PUT   /api/v1/environments/{id}
+DELETE /api/v1/environments/{id}
 
 GET   /api/v1/deployments
 POST  /api/v1/deployments
 GET   /api/v1/deployments/{id}
 PUT   /api/v1/deployments/{id}
 PATCH /api/v1/deployments/{id}
+DELETE /api/v1/deployments/{id}
 
 GET   /api/v1/pipelines
 POST  /api/v1/pipelines
 GET   /api/v1/pipelines/{id}
 PATCH /api/v1/pipelines/{id}
+DELETE /api/v1/pipelines/{id}
 
 GET   /api/v1/incidents
 POST  /api/v1/incidents
 GET   /api/v1/incidents/{id}
 PUT   /api/v1/incidents/{id}
 PATCH /api/v1/incidents/{id}
+DELETE /api/v1/incidents/{id}
 
 GET  /api/v1/platform/summary
 GET  /api/v1/platform/scorecards

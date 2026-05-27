@@ -34,6 +34,9 @@ Content-Type: application/json
   "title": "Senior Backend Engineer"
 }
 
+### Delete employee
+DELETE {{baseUrl}}/api/v1/employees/replace-with-created-employee-id
+
 ### Create application
 POST {{baseUrl}}/api/v1/applications
 Content-Type: application/json
@@ -77,6 +80,9 @@ Content-Type: application/json
   "tags": ["go", "payroll", "backend", "tier-1"]
 }
 
+### Delete application
+DELETE {{baseUrl}}/api/v1/applications/replace-with-created-application-id
+
 ### Create cluster
 POST {{baseUrl}}/api/v1/clusters
 Content-Type: application/json
@@ -117,6 +123,9 @@ Content-Type: application/json
   "status": "degraded"
 }
 
+### Delete cluster
+DELETE {{baseUrl}}/api/v1/clusters/replace-with-created-cluster-id
+
 ### Create environment
 POST {{baseUrl}}/api/v1/environments
 Content-Type: application/json
@@ -156,6 +165,9 @@ Content-Type: application/json
     "FEATURE_FLAGS": "payroll-v2"
   }
 }
+
+### Delete environment
+DELETE {{baseUrl}}/api/v1/environments/replace-with-created-environment-id
 
 ### Create deployment
 POST {{baseUrl}}/api/v1/deployments
@@ -199,6 +211,9 @@ Content-Type: application/json
   "status": "succeeded"
 }
 
+### Delete deployment
+DELETE {{baseUrl}}/api/v1/deployments/replace-with-created-deployment-id
+
 ### Create pipeline run
 POST {{baseUrl}}/api/v1/pipelines
 Content-Type: application/json
@@ -224,6 +239,9 @@ Content-Type: application/json
 {
   "status": "succeeded"
 }
+
+### Delete pipeline run
+DELETE {{baseUrl}}/api/v1/pipelines/replace-with-created-pipeline-id
 
 ### Create incident
 POST {{baseUrl}}/api/v1/incidents
@@ -253,6 +271,9 @@ Content-Type: application/json
 {
   "status": "resolved"
 }
+
+### Delete incident
+DELETE {{baseUrl}}/api/v1/incidents/replace-with-created-incident-id
 
 ### Platform summary
 GET {{baseUrl}}/api/v1/platform/summary

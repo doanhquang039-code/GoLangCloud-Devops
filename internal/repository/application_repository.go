@@ -14,6 +14,7 @@ type ApplicationRepository interface {
 	FindAll(ctx context.Context) ([]model.Application, error)
 	FindByID(ctx context.Context, id string) (model.Application, error)
 	Save(ctx context.Context, application model.Application) (model.Application, error)
+	DeleteByID(ctx context.Context, id string) error
 }
 
 type InMemoryApplicationRepository struct {
@@ -57,4 +58,16 @@ func (r *InMemoryApplicationRepository) Save(ctx context.Context, application mo
 
 	r.applications[application.ID] = application
 	return application, nil
+}
+
+func (r *InMemoryApplicationRepository) DeleteByID(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.applications[id]; !ok {
+		return ErrApplicationNotFound
+	}
+
+	delete(r.applications, id)
+	return nil
 }

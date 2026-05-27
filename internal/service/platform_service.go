@@ -80,14 +80,14 @@ func (s *PlatformService) GetSummary(ctx context.Context) (model.PlatformSummary
 	}
 
 	return model.PlatformSummary{
-		Applications: len(applications),
-		Clusters:     len(clusters),
-		Environments: len(environments),
-		Deployments:  len(deployments),
-		PipelineRuns: len(pipelineRuns),
-		Incidents:    len(incidents),
+		Applications:  len(applications),
+		Clusters:      len(clusters),
+		Environments:  len(environments),
+		Deployments:   len(deployments),
+		PipelineRuns:  len(pipelineRuns),
+		Incidents:     len(incidents),
 		OpenIncidents: openIncidents,
-		ByStatus:     byStatus,
+		ByStatus:      byStatus,
 	}, nil
 }
 
@@ -123,7 +123,7 @@ func (s *PlatformService) GetScorecards(ctx context.Context) ([]model.PlatformSc
 			ApplicationID:   application.ID,
 			ApplicationName: application.Name,
 			OwnerTeam:       application.OwnerTeam,
-			Criticality:    application.Criticality,
+			Criticality:     application.Criticality,
 		}
 
 		clusterIDs := map[string]struct{}{}

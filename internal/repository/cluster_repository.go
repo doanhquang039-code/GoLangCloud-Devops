@@ -14,6 +14,7 @@ type ClusterRepository interface {
 	FindAll(ctx context.Context) ([]model.Cluster, error)
 	FindByID(ctx context.Context, id string) (model.Cluster, error)
 	Save(ctx context.Context, cluster model.Cluster) (model.Cluster, error)
+	DeleteByID(ctx context.Context, id string) error
 }
 
 type InMemoryClusterRepository struct {
@@ -57,4 +58,16 @@ func (r *InMemoryClusterRepository) Save(ctx context.Context, cluster model.Clus
 
 	r.clusters[cluster.ID] = cluster
 	return cluster, nil
+}
+
+func (r *InMemoryClusterRepository) DeleteByID(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.clusters[id]; !ok {
+		return ErrClusterNotFound
+	}
+
+	delete(r.clusters, id)
+	return nil
 }

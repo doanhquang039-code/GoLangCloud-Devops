@@ -115,6 +115,15 @@ func (s *EnvironmentService) UpdateEnvironment(ctx context.Context, id string, r
 	return s.environmentRepository.Save(ctx, environment)
 }
 
+func (s *EnvironmentService) DeleteEnvironment(ctx context.Context, id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ErrInvalidEnvironment
+	}
+
+	return s.environmentRepository.DeleteByID(ctx, id)
+}
+
 func (s *EnvironmentService) buildEnvironment(ctx context.Context, environment model.Environment, name, environmentType, applicationID, clusterID, namespace, status string, variables map[string]string) (model.Environment, error) {
 	name = strings.TrimSpace(name)
 	environmentType = strings.TrimSpace(environmentType)

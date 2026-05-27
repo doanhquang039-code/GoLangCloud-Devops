@@ -48,6 +48,8 @@ func (c *EmployeeController) Show(w http.ResponseWriter, r *http.Request) {
 		c.GetEmployee(w, r, id)
 	case http.MethodPut:
 		c.UpdateEmployee(w, r, id)
+	case http.MethodDelete:
+		c.DeleteEmployee(w, r, id)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -91,6 +93,24 @@ func (c *EmployeeController) UpdateEmployee(w http.ResponseWriter, r *http.Reque
 	}
 
 	writeJSON(w, http.StatusOK, employee)
+}
+
+func (c *EmployeeController) DeleteEmployee(w http.ResponseWriter, r *http.Request, id string) {
+	err := c.employeeService.DeleteEmployee(r.Context(), id)
+	if errors.Is(err, service.ErrInvalidEmployee) {
+		writeError(w, http.StatusBadRequest, "employee id is required")
+		return
+	}
+	if errors.Is(err, repository.ErrEmployeeNotFound) {
+		writeError(w, http.StatusNotFound, "employee not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not delete employee")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (c *EmployeeController) CreateEmployee(w http.ResponseWriter, r *http.Request) {

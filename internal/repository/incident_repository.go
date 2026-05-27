@@ -14,6 +14,7 @@ type IncidentRepository interface {
 	FindAll(ctx context.Context) ([]model.Incident, error)
 	FindByID(ctx context.Context, id string) (model.Incident, error)
 	Save(ctx context.Context, incident model.Incident) (model.Incident, error)
+	DeleteByID(ctx context.Context, id string) error
 }
 
 type InMemoryIncidentRepository struct {
@@ -57,4 +58,16 @@ func (r *InMemoryIncidentRepository) Save(ctx context.Context, incident model.In
 
 	r.incidents[incident.ID] = incident
 	return incident, nil
+}
+
+func (r *InMemoryIncidentRepository) DeleteByID(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.incidents[id]; !ok {
+		return ErrIncidentNotFound
+	}
+
+	delete(r.incidents, id)
+	return nil
 }

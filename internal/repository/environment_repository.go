@@ -14,6 +14,7 @@ type EnvironmentRepository interface {
 	FindAll(ctx context.Context) ([]model.Environment, error)
 	FindByID(ctx context.Context, id string) (model.Environment, error)
 	Save(ctx context.Context, environment model.Environment) (model.Environment, error)
+	DeleteByID(ctx context.Context, id string) error
 }
 
 type InMemoryEnvironmentRepository struct {
@@ -57,4 +58,16 @@ func (r *InMemoryEnvironmentRepository) Save(ctx context.Context, environment mo
 
 	r.environments[environment.ID] = environment
 	return environment, nil
+}
+
+func (r *InMemoryEnvironmentRepository) DeleteByID(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.environments[id]; !ok {
+		return ErrEnvironmentNotFound
+	}
+
+	delete(r.environments, id)
+	return nil
 }

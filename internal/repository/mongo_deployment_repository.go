@@ -60,3 +60,15 @@ func (r *MongoDeploymentRepository) Save(ctx context.Context, deployment model.D
 
 	return deployment, nil
 }
+
+func (r *MongoDeploymentRepository) DeleteByID(ctx context.Context, id string) error {
+	result, err := r.collection.DeleteOne(ctx, bson.M{"id": id})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return ErrDeploymentNotFound
+	}
+
+	return nil
+}

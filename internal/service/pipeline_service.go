@@ -125,6 +125,15 @@ func (s *PipelineService) UpdatePipelineRunStatus(ctx context.Context, id string
 	return s.pipelineRepository.Save(ctx, pipelineRun)
 }
 
+func (s *PipelineService) DeletePipelineRun(ctx context.Context, id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ErrInvalidPipelineRun
+	}
+
+	return s.pipelineRepository.DeleteByID(ctx, id)
+}
+
 func buildPipelineStages(stageNames []string, now time.Time) []model.PipelineStage {
 	if len(stageNames) == 0 {
 		stageNames = []string{"build", "test", "security-scan", "package"}

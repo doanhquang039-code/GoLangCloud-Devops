@@ -57,6 +57,8 @@ func (c *PipelineController) ShowOrUpdateStatus(w http.ResponseWriter, r *http.R
 		c.Show(w, r, id)
 	case http.MethodPatch:
 		c.UpdateStatus(w, r, id)
+	case http.MethodDelete:
+		c.DeletePipelineRun(w, r, id)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -74,6 +76,24 @@ func (c *PipelineController) Show(w http.ResponseWriter, r *http.Request, id str
 	}
 
 	writeJSON(w, http.StatusOK, pipelineRun)
+}
+
+func (c *PipelineController) DeletePipelineRun(w http.ResponseWriter, r *http.Request, id string) {
+	err := c.pipelineService.DeletePipelineRun(r.Context(), id)
+	if errors.Is(err, service.ErrInvalidPipelineRun) {
+		writeError(w, http.StatusBadRequest, "pipeline run id is required")
+		return
+	}
+	if errors.Is(err, repository.ErrPipelineRunNotFound) {
+		writeError(w, http.StatusNotFound, "pipeline run not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not delete pipeline run")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (c *PipelineController) CreatePipelineRun(w http.ResponseWriter, r *http.Request) {

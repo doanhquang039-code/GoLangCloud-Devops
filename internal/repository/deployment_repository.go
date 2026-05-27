@@ -14,6 +14,7 @@ type DeploymentRepository interface {
 	FindAll(ctx context.Context) ([]model.Deployment, error)
 	FindByID(ctx context.Context, id string) (model.Deployment, error)
 	Save(ctx context.Context, deployment model.Deployment) (model.Deployment, error)
+	DeleteByID(ctx context.Context, id string) error
 }
 
 type InMemoryDeploymentRepository struct {
@@ -57,4 +58,16 @@ func (r *InMemoryDeploymentRepository) Save(ctx context.Context, deployment mode
 
 	r.deployments[deployment.ID] = deployment
 	return deployment, nil
+}
+
+func (r *InMemoryDeploymentRepository) DeleteByID(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.deployments[id]; !ok {
+		return ErrDeploymentNotFound
+	}
+
+	delete(r.deployments, id)
+	return nil
 }

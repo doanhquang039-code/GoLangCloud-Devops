@@ -60,3 +60,15 @@ func (r *MongoEmployeeRepository) Save(ctx context.Context, employee model.Emplo
 
 	return employee, nil
 }
+
+func (r *MongoEmployeeRepository) DeleteByID(ctx context.Context, id string) error {
+	result, err := r.collection.DeleteOne(ctx, bson.M{"id": id})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return ErrEmployeeNotFound
+	}
+
+	return nil
+}

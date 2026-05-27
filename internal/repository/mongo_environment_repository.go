@@ -60,3 +60,15 @@ func (r *MongoEnvironmentRepository) Save(ctx context.Context, environment model
 
 	return environment, nil
 }
+
+func (r *MongoEnvironmentRepository) DeleteByID(ctx context.Context, id string) error {
+	result, err := r.collection.DeleteOne(ctx, bson.M{"id": id})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return ErrEnvironmentNotFound
+	}
+
+	return nil
+}

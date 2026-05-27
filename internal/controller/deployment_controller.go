@@ -60,6 +60,8 @@ func (c *DeploymentController) ShowOrUpdateStatus(w http.ResponseWriter, r *http
 		c.UpdateDeployment(w, r, id)
 	case http.MethodPatch:
 		c.UpdateStatus(w, r, id)
+	case http.MethodDelete:
+		c.DeleteDeployment(w, r, id)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -77,6 +79,24 @@ func (c *DeploymentController) Show(w http.ResponseWriter, r *http.Request, id s
 	}
 
 	writeJSON(w, http.StatusOK, deployment)
+}
+
+func (c *DeploymentController) DeleteDeployment(w http.ResponseWriter, r *http.Request, id string) {
+	err := c.deploymentService.DeleteDeployment(r.Context(), id)
+	if errors.Is(err, service.ErrInvalidDeployment) {
+		writeError(w, http.StatusBadRequest, "deployment id is required")
+		return
+	}
+	if errors.Is(err, repository.ErrDeploymentNotFound) {
+		writeError(w, http.StatusNotFound, "deployment not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not delete deployment")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (c *DeploymentController) CreateDeployment(w http.ResponseWriter, r *http.Request) {

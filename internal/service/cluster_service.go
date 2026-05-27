@@ -150,6 +150,15 @@ func (s *ClusterService) UpdateClusterStatus(ctx context.Context, id string, req
 	return s.clusterRepository.Save(ctx, cluster)
 }
 
+func (s *ClusterService) DeleteCluster(ctx context.Context, id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ErrInvalidCluster
+	}
+
+	return s.clusterRepository.DeleteByID(ctx, id)
+}
+
 func isValidClusterStatus(status string) bool {
 	return status == "ready" || status == "degraded" || status == "maintenance" || status == "offline"
 }

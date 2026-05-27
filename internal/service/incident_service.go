@@ -160,6 +160,15 @@ func (s *IncidentService) UpdateIncidentStatus(ctx context.Context, id string, r
 	return s.incidentRepository.Save(ctx, incident)
 }
 
+func (s *IncidentService) DeleteIncident(ctx context.Context, id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ErrInvalidIncident
+	}
+
+	return s.incidentRepository.DeleteByID(ctx, id)
+}
+
 func (s *IncidentService) buildIncident(ctx context.Context, incident model.Incident, title, summary, severity, status, applicationID, clusterID, deploymentID, ownerTeam string) (model.Incident, error) {
 	title = strings.TrimSpace(title)
 	summary = strings.TrimSpace(summary)

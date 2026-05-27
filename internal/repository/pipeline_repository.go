@@ -14,6 +14,7 @@ type PipelineRepository interface {
 	FindAll(ctx context.Context) ([]model.PipelineRun, error)
 	FindByID(ctx context.Context, id string) (model.PipelineRun, error)
 	Save(ctx context.Context, pipelineRun model.PipelineRun) (model.PipelineRun, error)
+	DeleteByID(ctx context.Context, id string) error
 }
 
 type InMemoryPipelineRepository struct {
@@ -57,4 +58,16 @@ func (r *InMemoryPipelineRepository) Save(ctx context.Context, pipelineRun model
 
 	r.pipelineRuns[pipelineRun.ID] = pipelineRun
 	return pipelineRun, nil
+}
+
+func (r *InMemoryPipelineRepository) DeleteByID(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, ok := r.pipelineRuns[id]; !ok {
+		return ErrPipelineRunNotFound
+	}
+
+	delete(r.pipelineRuns, id)
+	return nil
 }

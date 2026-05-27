@@ -198,6 +198,15 @@ func (s *DeploymentService) UpdateDeploymentStatus(ctx context.Context, id strin
 	return s.deploymentRepository.Save(ctx, deployment)
 }
 
+func (s *DeploymentService) DeleteDeployment(ctx context.Context, id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ErrInvalidDeployment
+	}
+
+	return s.deploymentRepository.DeleteByID(ctx, id)
+}
+
 func isValidDeploymentStatus(status string) bool {
 	return status == "running" || status == "succeeded" || status == "failed"
 }

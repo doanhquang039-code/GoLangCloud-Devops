@@ -60,3 +60,15 @@ func (r *MongoPipelineRepository) Save(ctx context.Context, pipelineRun model.Pi
 
 	return pipelineRun, nil
 }
+
+func (r *MongoPipelineRepository) DeleteByID(ctx context.Context, id string) error {
+	result, err := r.collection.DeleteOne(ctx, bson.M{"id": id})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return ErrPipelineRunNotFound
+	}
+
+	return nil
+}

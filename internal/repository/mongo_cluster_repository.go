@@ -60,3 +60,15 @@ func (r *MongoClusterRepository) Save(ctx context.Context, cluster model.Cluster
 
 	return cluster, nil
 }
+
+func (r *MongoClusterRepository) DeleteByID(ctx context.Context, id string) error {
+	result, err := r.collection.DeleteOne(ctx, bson.M{"id": id})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return ErrClusterNotFound
+	}
+
+	return nil
+}

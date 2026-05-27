@@ -61,6 +61,8 @@ func (c *IncidentController) ShowOrUpdate(w http.ResponseWriter, r *http.Request
 		c.UpdateIncident(w, r, id)
 	case http.MethodPatch:
 		c.UpdateStatus(w, r, id)
+	case http.MethodDelete:
+		c.DeleteIncident(w, r, id)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -78,6 +80,16 @@ func (c *IncidentController) Show(w http.ResponseWriter, r *http.Request, id str
 	}
 
 	writeJSON(w, http.StatusOK, incident)
+}
+
+func (c *IncidentController) DeleteIncident(w http.ResponseWriter, r *http.Request, id string) {
+	err := c.incidentService.DeleteIncident(r.Context(), id)
+	c.writeIncidentError(w, err, "could not delete incident")
+	if err != nil {
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (c *IncidentController) CreateIncident(w http.ResponseWriter, r *http.Request) {

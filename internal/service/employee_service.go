@@ -81,3 +81,12 @@ func (s *EmployeeService) UpdateEmployee(ctx context.Context, id string, request
 
 	return s.employeeRepository.Save(ctx, employee)
 }
+
+func (s *EmployeeService) DeleteEmployee(ctx context.Context, id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ErrInvalidEmployee
+	}
+
+	return s.employeeRepository.DeleteByID(ctx, id)
+}

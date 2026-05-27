@@ -57,6 +57,8 @@ func (c *EnvironmentController) ShowOrUpdate(w http.ResponseWriter, r *http.Requ
 		c.Show(w, r, id)
 	case http.MethodPut:
 		c.UpdateEnvironment(w, r, id)
+	case http.MethodDelete:
+		c.DeleteEnvironment(w, r, id)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -74,6 +76,16 @@ func (c *EnvironmentController) Show(w http.ResponseWriter, r *http.Request, id 
 	}
 
 	writeJSON(w, http.StatusOK, environment)
+}
+
+func (c *EnvironmentController) DeleteEnvironment(w http.ResponseWriter, r *http.Request, id string) {
+	err := c.environmentService.DeleteEnvironment(r.Context(), id)
+	c.writeEnvironmentError(w, err, "could not delete environment")
+	if err != nil {
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (c *EnvironmentController) CreateEnvironment(w http.ResponseWriter, r *http.Request) {

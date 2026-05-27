@@ -58,6 +58,8 @@ func (c *ClusterController) ShowOrUpdateStatus(w http.ResponseWriter, r *http.Re
 		c.UpdateCluster(w, r, id)
 	case http.MethodPatch:
 		c.UpdateStatus(w, r, id)
+	case http.MethodDelete:
+		c.DeleteCluster(w, r, id)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -75,6 +77,24 @@ func (c *ClusterController) Show(w http.ResponseWriter, r *http.Request, id stri
 	}
 
 	writeJSON(w, http.StatusOK, cluster)
+}
+
+func (c *ClusterController) DeleteCluster(w http.ResponseWriter, r *http.Request, id string) {
+	err := c.clusterService.DeleteCluster(r.Context(), id)
+	if errors.Is(err, service.ErrInvalidCluster) {
+		writeError(w, http.StatusBadRequest, "cluster id is required")
+		return
+	}
+	if errors.Is(err, repository.ErrClusterNotFound) {
+		writeError(w, http.StatusNotFound, "cluster not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not delete cluster")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (c *ClusterController) CreateCluster(w http.ResponseWriter, r *http.Request) {

@@ -128,6 +128,15 @@ func (s *ApplicationService) UpdateApplication(ctx context.Context, id string, r
 	return s.applicationRepository.Save(ctx, application)
 }
 
+func (s *ApplicationService) DeleteApplication(ctx context.Context, id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ErrInvalidApplication
+	}
+
+	return s.applicationRepository.DeleteByID(ctx, id)
+}
+
 func normalizeTags(tags []string) []string {
 	normalized := make([]string, 0, len(tags))
 	seen := map[string]struct{}{}

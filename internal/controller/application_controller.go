@@ -48,6 +48,8 @@ func (c *ApplicationController) Show(w http.ResponseWriter, r *http.Request) {
 		c.GetApplication(w, r, id)
 	case http.MethodPut:
 		c.UpdateApplication(w, r, id)
+	case http.MethodDelete:
+		c.DeleteApplication(w, r, id)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -91,6 +93,24 @@ func (c *ApplicationController) UpdateApplication(w http.ResponseWriter, r *http
 	}
 
 	writeJSON(w, http.StatusOK, application)
+}
+
+func (c *ApplicationController) DeleteApplication(w http.ResponseWriter, r *http.Request, id string) {
+	err := c.applicationService.DeleteApplication(r.Context(), id)
+	if errors.Is(err, service.ErrInvalidApplication) {
+		writeError(w, http.StatusBadRequest, "application id is required")
+		return
+	}
+	if errors.Is(err, repository.ErrApplicationNotFound) {
+		writeError(w, http.StatusNotFound, "application not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not delete application")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (c *ApplicationController) CreateApplication(w http.ResponseWriter, r *http.Request) {
