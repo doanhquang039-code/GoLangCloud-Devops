@@ -321,21 +321,55 @@ Or with Docker Compose:
 docker compose up --build
 ```
 
+If port `8080` is already used, run Compose with another host port:
+
+```powershell
+$env:API_PORT="8081"
+docker compose up --build
+```
+
 `/healthz` checks whether the process is alive. `/readyz` checks whether the API can ping MongoDB.
 
 ## API Examples
 
 Open `docs/api.http` in VS Code or IntelliJ HTTP Client to call the sample APIs.
 
-## CI
+## CI/CD Docker
 
-The GitHub Actions workflow in `.github/workflows/ci.yml` runs:
+The GitHub Actions workflow in `.github/workflows/ci.yml` runs on pull requests and pushes to `main`:
 
 - `gofmt` check
 - `go vet ./...`
 - `go test ./...`
 - `govulncheck` dependency and code vulnerability scan
-- Docker image build
+- Docker Buildx image build
+- Docker image publish to GitHub Container Registry on `main` and `v*` tags
+
+Published images use this registry path:
+
+```text
+ghcr.io/<owner>/<repo>
+```
+
+Common tags:
+
+- `main` for the latest `main` branch build
+- `sha-<commit>` for immutable commit builds
+- `<version>` and `<major>.<minor>` for Git tags like `v1.2.3`
+
+Run a published image with Compose:
+
+```powershell
+$env:IMAGE_NAME="ghcr.io/<owner>/<repo>:main"
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Create a release image:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ## Kubernetes
 
@@ -371,6 +405,10 @@ The Kubernetes manifests include:
 
 If your cluster does not have Prometheus Operator installed, skip `deploy/k8s/servicemonitor.yaml` or install the CRD first.
 For production, replace `deploy/k8s/secret.example.yaml` with a real Secret from your secret manager or CI/CD pipeline before applying manifests.
+
+## Jenkins and Cloud Deployment
+
+This repo includes a `Jenkinsfile` for Go quality gates, Docker image build/push, and Kubernetes rollout. See `docs/cloud-cicd.md` for the required Jenkins credentials and the Docker Compose production path for a cloud VM.
 
 ## Note
 

@@ -1,0 +1,12 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/template/spec/containers/0/image",
+    "value": "hr-cloud-devops-service:local"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/template/spec/containers/0/imagePullPolicy",
+    "value": "Never"
+  }
+]

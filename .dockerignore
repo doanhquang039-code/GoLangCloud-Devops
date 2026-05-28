@@ -1,5 +1,12 @@
 .git
+.github
+.gocache
+.tools
 bin
+deploy
+docs
 *.exe
 *.test
 .env
+.env.prod
+README.md

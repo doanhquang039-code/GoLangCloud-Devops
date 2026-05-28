@@ -32,7 +32,7 @@ spec:
       containers:
         - name: api
           image: hr-cloud-devops-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080

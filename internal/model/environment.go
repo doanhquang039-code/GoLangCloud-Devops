@@ -49,18 +49,18 @@ type EnvironmentVariableDrift struct {
 }
 
 type EnvironmentDriftReport struct {
-	EnvironmentID      string                     `json:"environment_id"`
-	EnvironmentName    string                     `json:"environment_name"`
-	EnvironmentType    string                     `json:"environment_type"`
-	ApplicationID      string                     `json:"application_id"`
-	ApplicationName    string                     `json:"application_name"`
-	ClusterID          string                     `json:"cluster_id"`
-	Namespace          string                     `json:"namespace"`
-	Status             string                     `json:"status"`
-	MissingVariables   []EnvironmentVariableDrift `json:"missing_variables,omitempty"`
-	ChangedVariables   []EnvironmentVariableDrift `json:"changed_variables,omitempty"`
-	ExtraVariables     []EnvironmentVariableDrift `json:"extra_variables,omitempty"`
-	DriftScore         int                        `json:"drift_score"`
-	DriftLevel         string                     `json:"drift_level"`
-	DriftReasons       []string                   `json:"drift_reasons,omitempty"`
+	EnvironmentID    string                     `json:"environment_id"`
+	EnvironmentName  string                     `json:"environment_name"`
+	EnvironmentType  string                     `json:"environment_type"`
+	ApplicationID    string                     `json:"application_id"`
+	ApplicationName  string                     `json:"application_name"`
+	ClusterID        string                     `json:"cluster_id"`
+	Namespace        string                     `json:"namespace"`
+	Status           string                     `json:"status"`
+	MissingVariables []EnvironmentVariableDrift `json:"missing_variables,omitempty"`
+	ChangedVariables []EnvironmentVariableDrift `json:"changed_variables,omitempty"`
+	ExtraVariables   []EnvironmentVariableDrift `json:"extra_variables,omitempty"`
+	DriftScore       int                        `json:"drift_score"`
+	DriftLevel       string                     `json:"drift_level"`
+	DriftReasons     []string                   `json:"drift_reasons,omitempty"`
 }

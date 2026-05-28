@@ -1,20 +1,21 @@
 services:
   mongo:
     image: mongo:7
+    restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
 
   api:
-    build: .
-    image: ${IMAGE_NAME:-hr-cloud-devops-service:local}
+    image: ${IMAGE_NAME:?Set IMAGE_NAME to the published Docker image, for example ghcr.io/owner/repo:main}
+    restart: unless-stopped
     ports:
       - "${API_PORT:-8080}:8080"
     environment:
       PORT: "8080"
-      MONGO_URI: "mongodb://mongo:27017"
-      MONGO_DATABASE: "hr_cloud"
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
+      MONGO_DATABASE: ${MONGO_DATABASE:-hr_cloud}
     depends_on:
       - mongo
     healthcheck:

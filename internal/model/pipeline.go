@@ -15,9 +15,9 @@ type PipelineRun struct {
 }
 
 type PipelineStage struct {
-	Name      string    `json:"name" bson:"name"`
-	Status    string    `json:"status" bson:"status"`
-	StartedAt time.Time `json:"started_at" bson:"started_at"`
+	Name      string     `json:"name" bson:"name"`
+	Status    string     `json:"status" bson:"status"`
+	StartedAt time.Time  `json:"started_at" bson:"started_at"`
 	EndedAt   *time.Time `json:"ended_at,omitempty" bson:"ended_at,omitempty"`
 }
 
