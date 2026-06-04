@@ -21,8 +21,35 @@ func NewEmployeeService(employeeRepository repository.EmployeeRepository) *Emplo
 	return &EmployeeService{employeeRepository: employeeRepository}
 }
 
-func (s *EmployeeService) GetEmployees(ctx context.Context) ([]model.Employee, error) {
-	return s.employeeRepository.FindAll(ctx)
+func (s *EmployeeService) GetEmployees(ctx context.Context, filter model.EmployeeFilter) ([]model.Employee, error) {
+	filter.Query = strings.TrimSpace(filter.Query)
+	filter.Department = strings.TrimSpace(filter.Department)
+	filter.Title = strings.TrimSpace(filter.Title)
+
+	employees, err := s.employeeRepository.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if filter.Query == "" && filter.Department == "" && filter.Title == "" {
+		return employees, nil
+	}
+
+	filtered := make([]model.Employee, 0, len(employees))
+	for _, employee := range employees {
+		if filter.Department != "" && !strings.EqualFold(employee.Department, filter.Department) {
+			continue
+		}
+		if filter.Title != "" && !strings.EqualFold(employee.Title, filter.Title) {
+			continue
+		}
+		if filter.Query != "" && !employeeMatchesQuery(employee, filter.Query) {
+			continue
+		}
+		filtered = append(filtered, employee)
+	}
+
+	return filtered, nil
 }
 
 func (s *EmployeeService) GetEmployeeByID(ctx context.Context, id string) (model.Employee, error) {
@@ -89,4 +116,13 @@ func (s *EmployeeService) DeleteEmployee(ctx context.Context, id string) error {
 	}
 
 	return s.employeeRepository.DeleteByID(ctx, id)
+}
+
+func employeeMatchesQuery(employee model.Employee, query string) bool {
+	query = strings.ToLower(query)
+	return strings.Contains(strings.ToLower(employee.ID), query) ||
+		strings.Contains(strings.ToLower(employee.Name), query) ||
+		strings.Contains(strings.ToLower(employee.Email), query) ||
+		strings.Contains(strings.ToLower(employee.Department), query) ||
+		strings.Contains(strings.ToLower(employee.Title), query)
 }

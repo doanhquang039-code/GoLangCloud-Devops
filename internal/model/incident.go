@@ -18,6 +18,7 @@ type Incident struct {
 }
 
 type IncidentFilter struct {
+	Query         string
 	ApplicationID string
 	ClusterID     string
 	DeploymentID  string

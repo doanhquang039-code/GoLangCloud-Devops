@@ -35,11 +35,12 @@ func NewIncidentService(
 }
 
 func (s *IncidentService) GetIncidents(ctx context.Context, filter model.IncidentFilter) ([]model.Incident, error) {
+	filter.Query = strings.TrimSpace(filter.Query)
 	filter.ApplicationID = strings.TrimSpace(filter.ApplicationID)
 	filter.ClusterID = strings.TrimSpace(filter.ClusterID)
 	filter.DeploymentID = strings.TrimSpace(filter.DeploymentID)
-	filter.Severity = strings.TrimSpace(filter.Severity)
-	filter.Status = strings.TrimSpace(filter.Status)
+	filter.Severity = strings.ToLower(strings.TrimSpace(filter.Severity))
+	filter.Status = strings.ToLower(strings.TrimSpace(filter.Status))
 	filter.OwnerTeam = strings.TrimSpace(filter.OwnerTeam)
 
 	if filter.Severity != "" && !isValidIncidentSeverity(filter.Severity) {
@@ -54,12 +55,15 @@ func (s *IncidentService) GetIncidents(ctx context.Context, filter model.Inciden
 		return nil, err
 	}
 
-	if filter.ApplicationID == "" && filter.ClusterID == "" && filter.DeploymentID == "" && filter.Severity == "" && filter.Status == "" && filter.OwnerTeam == "" {
+	if filter.Query == "" && filter.ApplicationID == "" && filter.ClusterID == "" && filter.DeploymentID == "" && filter.Severity == "" && filter.Status == "" && filter.OwnerTeam == "" {
 		return incidents, nil
 	}
 
 	filtered := make([]model.Incident, 0, len(incidents))
 	for _, incident := range incidents {
+		if filter.Query != "" && !incidentMatchesQuery(incident, filter.Query) {
+			continue
+		}
 		if filter.ApplicationID != "" && incident.ApplicationID != filter.ApplicationID {
 			continue
 		}
@@ -69,10 +73,10 @@ func (s *IncidentService) GetIncidents(ctx context.Context, filter model.Inciden
 		if filter.DeploymentID != "" && incident.DeploymentID != filter.DeploymentID {
 			continue
 		}
-		if filter.Severity != "" && incident.Severity != filter.Severity {
+		if filter.Severity != "" && !strings.EqualFold(incident.Severity, filter.Severity) {
 			continue
 		}
-		if filter.Status != "" && incident.Status != filter.Status {
+		if filter.Status != "" && !strings.EqualFold(incident.Status, filter.Status) {
 			continue
 		}
 		if filter.OwnerTeam != "" && !strings.EqualFold(incident.OwnerTeam, filter.OwnerTeam) {
@@ -223,4 +227,17 @@ func isValidIncidentSeverity(severity string) bool {
 
 func isValidIncidentStatus(status string) bool {
 	return status == "open" || status == "investigating" || status == "mitigated" || status == "resolved"
+}
+
+func incidentMatchesQuery(incident model.Incident, query string) bool {
+	query = strings.ToLower(query)
+	return strings.Contains(strings.ToLower(incident.ID), query) ||
+		strings.Contains(strings.ToLower(incident.Title), query) ||
+		strings.Contains(strings.ToLower(incident.Summary), query) ||
+		strings.Contains(strings.ToLower(incident.Severity), query) ||
+		strings.Contains(strings.ToLower(incident.Status), query) ||
+		strings.Contains(strings.ToLower(incident.ApplicationID), query) ||
+		strings.Contains(strings.ToLower(incident.ClusterID), query) ||
+		strings.Contains(strings.ToLower(incident.DeploymentID), query) ||
+		strings.Contains(strings.ToLower(incident.OwnerTeam), query)
 }

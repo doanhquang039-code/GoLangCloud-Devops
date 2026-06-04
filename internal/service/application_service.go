@@ -21,8 +21,43 @@ func NewApplicationService(applicationRepository repository.ApplicationRepositor
 	return &ApplicationService{applicationRepository: applicationRepository}
 }
 
-func (s *ApplicationService) GetApplications(ctx context.Context) ([]model.Application, error) {
-	return s.applicationRepository.FindAll(ctx)
+func (s *ApplicationService) GetApplications(ctx context.Context, filter model.ApplicationFilter) ([]model.Application, error) {
+	filter.Query = strings.TrimSpace(filter.Query)
+	filter.OwnerTeam = strings.TrimSpace(filter.OwnerTeam)
+	filter.Criticality = strings.TrimSpace(filter.Criticality)
+	filter.Runtime = strings.TrimSpace(filter.Runtime)
+	filter.Tag = strings.TrimSpace(filter.Tag)
+
+	applications, err := s.applicationRepository.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if filter.Query == "" && filter.OwnerTeam == "" && filter.Criticality == "" && filter.Runtime == "" && filter.Tag == "" {
+		return applications, nil
+	}
+
+	filtered := make([]model.Application, 0, len(applications))
+	for _, application := range applications {
+		if filter.Query != "" && !applicationMatchesQuery(application, filter.Query) {
+			continue
+		}
+		if filter.OwnerTeam != "" && !strings.EqualFold(application.OwnerTeam, filter.OwnerTeam) {
+			continue
+		}
+		if filter.Criticality != "" && !strings.EqualFold(application.Criticality, filter.Criticality) {
+			continue
+		}
+		if filter.Runtime != "" && !strings.EqualFold(application.Runtime, filter.Runtime) {
+			continue
+		}
+		if filter.Tag != "" && !hasApplicationTag(application.Tags, filter.Tag) {
+			continue
+		}
+		filtered = append(filtered, application)
+	}
+
+	return filtered, nil
 }
 
 func (s *ApplicationService) GetApplicationByID(ctx context.Context, id string) (model.Application, error) {
@@ -47,6 +82,7 @@ func (s *ApplicationService) CreateApplication(ctx context.Context, request mode
 	if request.Criticality == "" {
 		request.Criticality = "medium"
 	}
+	request.Criticality = strings.ToLower(request.Criticality)
 	if request.Port == 0 {
 		request.Port = 8080
 	}
@@ -95,6 +131,7 @@ func (s *ApplicationService) UpdateApplication(ctx context.Context, id string, r
 	if request.Criticality == "" {
 		request.Criticality = "medium"
 	}
+	request.Criticality = strings.ToLower(request.Criticality)
 	if request.Port == 0 {
 		request.Port = 8080
 	}
@@ -153,4 +190,39 @@ func normalizeTags(tags []string) []string {
 	}
 
 	return normalized
+}
+
+func hasApplicationTag(tags []string, wanted string) bool {
+	for _, tag := range tags {
+		if strings.EqualFold(tag, wanted) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func applicationMatchesQuery(application model.Application, query string) bool {
+	query = strings.ToLower(query)
+	if strings.Contains(strings.ToLower(application.ID), query) ||
+		strings.Contains(strings.ToLower(application.Name), query) ||
+		strings.Contains(strings.ToLower(application.Repository), query) ||
+		strings.Contains(strings.ToLower(application.Runtime), query) ||
+		strings.Contains(strings.ToLower(application.OwnerTeam), query) ||
+		strings.Contains(strings.ToLower(application.Criticality), query) ||
+		strings.Contains(strings.ToLower(application.HealthEndpoint), query) {
+		return true
+	}
+	for _, tag := range application.Tags {
+		if strings.Contains(strings.ToLower(tag), query) {
+			return true
+		}
+	}
+	for key, value := range application.Environment {
+		if strings.Contains(strings.ToLower(key), query) || strings.Contains(strings.ToLower(value), query) {
+			return true
+		}
+	}
+
+	return false
 }

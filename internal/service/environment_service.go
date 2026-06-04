@@ -32,10 +32,11 @@ func NewEnvironmentService(
 }
 
 func (s *EnvironmentService) GetEnvironments(ctx context.Context, filter model.EnvironmentFilter) ([]model.Environment, error) {
+	filter.Query = strings.TrimSpace(filter.Query)
 	filter.ApplicationID = strings.TrimSpace(filter.ApplicationID)
 	filter.ClusterID = strings.TrimSpace(filter.ClusterID)
-	filter.Type = strings.TrimSpace(filter.Type)
-	filter.Status = strings.TrimSpace(filter.Status)
+	filter.Type = strings.ToLower(strings.TrimSpace(filter.Type))
+	filter.Status = strings.ToLower(strings.TrimSpace(filter.Status))
 
 	if filter.Type != "" && !isValidEnvironmentType(filter.Type) {
 		return nil, ErrInvalidEnvironment
@@ -49,22 +50,25 @@ func (s *EnvironmentService) GetEnvironments(ctx context.Context, filter model.E
 		return nil, err
 	}
 
-	if filter.ApplicationID == "" && filter.ClusterID == "" && filter.Type == "" && filter.Status == "" {
+	if filter.Query == "" && filter.ApplicationID == "" && filter.ClusterID == "" && filter.Type == "" && filter.Status == "" {
 		return environments, nil
 	}
 
 	filtered := make([]model.Environment, 0, len(environments))
 	for _, environment := range environments {
+		if filter.Query != "" && !environmentMatchesQuery(environment, filter.Query) {
+			continue
+		}
 		if filter.ApplicationID != "" && environment.ApplicationID != filter.ApplicationID {
 			continue
 		}
 		if filter.ClusterID != "" && environment.ClusterID != filter.ClusterID {
 			continue
 		}
-		if filter.Type != "" && environment.Type != filter.Type {
+		if filter.Type != "" && !strings.EqualFold(environment.Type, filter.Type) {
 			continue
 		}
-		if filter.Status != "" && environment.Status != filter.Status {
+		if filter.Status != "" && !strings.EqualFold(environment.Status, filter.Status) {
 			continue
 		}
 		filtered = append(filtered, environment)
@@ -169,4 +173,23 @@ func isValidEnvironmentType(environmentType string) bool {
 
 func isValidEnvironmentStatus(status string) bool {
 	return status == "active" || status == "inactive" || status == "deprecated"
+}
+
+func environmentMatchesQuery(environment model.Environment, query string) bool {
+	query = strings.ToLower(query)
+	if strings.Contains(strings.ToLower(environment.ID), query) ||
+		strings.Contains(strings.ToLower(environment.Name), query) ||
+		strings.Contains(strings.ToLower(environment.Type), query) ||
+		strings.Contains(strings.ToLower(environment.ApplicationID), query) ||
+		strings.Contains(strings.ToLower(environment.ClusterID), query) ||
+		strings.Contains(strings.ToLower(environment.Namespace), query) ||
+		strings.Contains(strings.ToLower(environment.Status), query) {
+		return true
+	}
+	for key, value := range environment.Variables {
+		if strings.Contains(strings.ToLower(key), query) || strings.Contains(strings.ToLower(value), query) {
+			return true
+		}
+	}
+	return false
 }

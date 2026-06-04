@@ -31,7 +31,11 @@ func (c *EmployeeController) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *EmployeeController) GetEmployees(w http.ResponseWriter, r *http.Request) {
-	employees, err := c.employeeService.GetEmployees(r.Context())
+	employees, err := c.employeeService.GetEmployees(r.Context(), model.EmployeeFilter{
+		Query:      r.URL.Query().Get("q"),
+		Department: r.URL.Query().Get("department"),
+		Title:      r.URL.Query().Get("title"),
+	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not list employees")
 		return

@@ -22,9 +22,10 @@ func NewClusterService(clusterRepository repository.ClusterRepository) *ClusterS
 }
 
 func (s *ClusterService) GetClusters(ctx context.Context, filter model.ClusterFilter) ([]model.Cluster, error) {
+	filter.Query = strings.TrimSpace(filter.Query)
 	filter.Provider = strings.TrimSpace(filter.Provider)
 	filter.Region = strings.TrimSpace(filter.Region)
-	filter.Status = strings.TrimSpace(filter.Status)
+	filter.Status = strings.ToLower(strings.TrimSpace(filter.Status))
 
 	if filter.Status != "" && !isValidClusterStatus(filter.Status) {
 		return nil, ErrInvalidCluster
@@ -35,19 +36,22 @@ func (s *ClusterService) GetClusters(ctx context.Context, filter model.ClusterFi
 		return nil, err
 	}
 
-	if filter.Provider == "" && filter.Region == "" && filter.Status == "" {
+	if filter.Query == "" && filter.Provider == "" && filter.Region == "" && filter.Status == "" {
 		return clusters, nil
 	}
 
 	filtered := make([]model.Cluster, 0, len(clusters))
 	for _, cluster := range clusters {
+		if filter.Query != "" && !clusterMatchesQuery(cluster, filter.Query) {
+			continue
+		}
 		if filter.Provider != "" && !strings.EqualFold(cluster.Provider, filter.Provider) {
 			continue
 		}
 		if filter.Region != "" && !strings.EqualFold(cluster.Region, filter.Region) {
 			continue
 		}
-		if filter.Status != "" && cluster.Status != filter.Status {
+		if filter.Status != "" && !strings.EqualFold(cluster.Status, filter.Status) {
 			continue
 		}
 		filtered = append(filtered, cluster)
@@ -161,4 +165,15 @@ func (s *ClusterService) DeleteCluster(ctx context.Context, id string) error {
 
 func isValidClusterStatus(status string) bool {
 	return status == "ready" || status == "degraded" || status == "maintenance" || status == "offline"
+}
+
+func clusterMatchesQuery(cluster model.Cluster, query string) bool {
+	query = strings.ToLower(query)
+	return strings.Contains(strings.ToLower(cluster.ID), query) ||
+		strings.Contains(strings.ToLower(cluster.Name), query) ||
+		strings.Contains(strings.ToLower(cluster.Provider), query) ||
+		strings.Contains(strings.ToLower(cluster.Region), query) ||
+		strings.Contains(strings.ToLower(cluster.Endpoint), query) ||
+		strings.Contains(strings.ToLower(cluster.Version), query) ||
+		strings.Contains(strings.ToLower(cluster.Status), query)
 }

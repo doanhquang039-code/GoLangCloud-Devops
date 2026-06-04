@@ -32,6 +32,7 @@ func (c *DeploymentController) Index(w http.ResponseWriter, r *http.Request) {
 
 func (c *DeploymentController) GetDeployments(w http.ResponseWriter, r *http.Request) {
 	deployments, err := c.deploymentService.GetDeployments(r.Context(), model.DeploymentFilter{
+		Query:         r.URL.Query().Get("q"),
 		ApplicationID: r.URL.Query().Get("application_id"),
 		ClusterID:     r.URL.Query().Get("cluster_id"),
 		Namespace:     r.URL.Query().Get("namespace"),

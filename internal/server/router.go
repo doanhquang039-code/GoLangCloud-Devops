@@ -14,6 +14,7 @@ func NewRouter(
 	environmentController *controller.EnvironmentController,
 	deploymentController *controller.DeploymentController,
 	pipelineController *controller.PipelineController,
+	microserviceController *controller.MicroserviceController,
 	incidentController *controller.IncidentController,
 	platformController *controller.PlatformController,
 ) http.Handler {
@@ -36,6 +37,8 @@ func NewRouter(
 	mux.HandleFunc("/api/v1/deployments/", deploymentController.ShowOrUpdateStatus)
 	mux.HandleFunc("/api/v1/pipelines", pipelineController.Index)
 	mux.HandleFunc("/api/v1/pipelines/", pipelineController.ShowOrUpdateStatus)
+	mux.HandleFunc("/api/v1/microservices", microserviceController.Index)
+	mux.HandleFunc("/api/v1/microservices/", microserviceController.ShowOrUpdate)
 	mux.HandleFunc("/api/v1/incidents", incidentController.Index)
 	mux.HandleFunc("/api/v1/incidents/", incidentController.ShowOrUpdate)
 	mux.HandleFunc("/api/v1/platform/summary", platformController.Summary)

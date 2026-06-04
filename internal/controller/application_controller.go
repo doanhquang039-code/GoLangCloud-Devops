@@ -31,7 +31,13 @@ func (c *ApplicationController) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *ApplicationController) GetApplications(w http.ResponseWriter, r *http.Request) {
-	applications, err := c.applicationService.GetApplications(r.Context())
+	applications, err := c.applicationService.GetApplications(r.Context(), model.ApplicationFilter{
+		Query:       r.URL.Query().Get("q"),
+		OwnerTeam:   r.URL.Query().Get("owner_team"),
+		Criticality: r.URL.Query().Get("criticality"),
+		Runtime:     r.URL.Query().Get("runtime"),
+		Tag:         r.URL.Query().Get("tag"),
+	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not list applications")
 		return

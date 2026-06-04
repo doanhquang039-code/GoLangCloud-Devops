@@ -23,6 +23,9 @@ Content-Type: application/json
 ### List employees
 GET {{baseUrl}}/api/v1/employees
 
+### Search platform SRE employees
+GET {{baseUrl}}/api/v1/employees?q=nguyen&department=Platform%20Engineering&title=SRE
+
 ### Update employee
 PUT {{baseUrl}}/api/v1/employees/replace-with-created-employee-id
 Content-Type: application/json
@@ -59,6 +62,12 @@ Content-Type: application/json
 
 ### List applications
 GET {{baseUrl}}/api/v1/applications
+
+### List platform Go backend applications
+GET {{baseUrl}}/api/v1/applications?owner_team=platform&criticality=high&runtime=go1.22&tag=backend
+
+### Search payroll applications
+GET {{baseUrl}}/api/v1/applications?q=payroll&owner_team=platform
 
 ### Update application
 PUT {{baseUrl}}/api/v1/applications/replace-with-created-application-id
@@ -101,6 +110,9 @@ GET {{baseUrl}}/api/v1/clusters
 
 ### List ready AWS clusters in Singapore
 GET {{baseUrl}}/api/v1/clusters?provider=aws&region=ap-southeast-1&status=ready
+
+### Search clusters by name, endpoint, or version
+GET {{baseUrl}}/api/v1/clusters?q=staging&provider=aws&status=ready
 
 ### Update cluster
 PUT {{baseUrl}}/api/v1/clusters/replace-with-created-cluster-id
@@ -149,6 +161,9 @@ GET {{baseUrl}}/api/v1/environments
 ### List active staging environments
 GET {{baseUrl}}/api/v1/environments?type=staging&status=active
 
+### Search environments by name, namespace, or variable
+GET {{baseUrl}}/api/v1/environments?q=payroll-v2&type=staging&status=active
+
 ### Update environment
 PUT {{baseUrl}}/api/v1/environments/replace-with-created-environment-id
 Content-Type: application/json
@@ -188,6 +203,9 @@ GET {{baseUrl}}/api/v1/deployments
 
 ### List running staging deployments
 GET {{baseUrl}}/api/v1/deployments?environment=staging&status=running
+
+### Search deployments by version, strategy, or requester
+GET {{baseUrl}}/api/v1/deployments?q=canary&environment=staging&status=running
 
 ### Update deployment
 PUT {{baseUrl}}/api/v1/deployments/replace-with-created-deployment-id
@@ -232,6 +250,9 @@ GET {{baseUrl}}/api/v1/pipelines
 ### List running main branch pipelines
 GET {{baseUrl}}/api/v1/pipelines?branch=main&status=running
 
+### Search pipeline runs by commit, actor, or stage
+GET {{baseUrl}}/api/v1/pipelines?q=security&status=running
+
 ### Mark pipeline as succeeded
 PATCH {{baseUrl}}/api/v1/pipelines/replace-with-created-pipeline-id
 Content-Type: application/json
@@ -240,8 +261,69 @@ Content-Type: application/json
   "status": "succeeded"
 }
 
+### Mark pipeline build stage as succeeded
+PATCH {{baseUrl}}/api/v1/pipelines/replace-with-created-pipeline-id/stages/build
+Content-Type: application/json
+
+{
+  "status": "succeeded"
+}
+
 ### Delete pipeline run
 DELETE {{baseUrl}}/api/v1/pipelines/replace-with-created-pipeline-id
+
+### Create microservice
+POST {{baseUrl}}/api/v1/microservices
+Content-Type: application/json
+
+{
+  "application_id": "replace-with-created-application-id",
+  "name": "payroll-api",
+  "owner_team": "platform",
+  "protocol": "http",
+  "endpoint": "http://payroll-api:8080",
+  "status": "active",
+  "dependencies": ["mongodb", "audit-events"],
+  "config": {
+    "TIMEOUT_SECONDS": "5"
+  },
+  "tags": ["backend", "payroll"]
+}
+
+### List active HTTP microservices
+GET {{baseUrl}}/api/v1/microservices?protocol=http&status=active&tag=backend
+
+### Search payroll microservices
+GET {{baseUrl}}/api/v1/microservices?q=payroll&owner_team=platform&status=active
+
+### Update microservice
+PUT {{baseUrl}}/api/v1/microservices/replace-with-created-microservice-id
+Content-Type: application/json
+
+{
+  "application_id": "replace-with-created-application-id",
+  "name": "payroll-worker",
+  "owner_team": "platform",
+  "protocol": "worker",
+  "endpoint": "queue://payroll-jobs",
+  "status": "active",
+  "dependencies": ["mongodb", "payroll-events"],
+  "config": {
+    "CONCURRENCY": "4"
+  },
+  "tags": ["backend", "payroll", "worker"]
+}
+
+### Mark microservice as degraded
+PATCH {{baseUrl}}/api/v1/microservices/replace-with-created-microservice-id
+Content-Type: application/json
+
+{
+  "status": "degraded"
+}
+
+### Delete microservice
+DELETE {{baseUrl}}/api/v1/microservices/replace-with-created-microservice-id
 
 ### Create incident
 POST {{baseUrl}}/api/v1/incidents
@@ -263,6 +345,9 @@ GET {{baseUrl}}/api/v1/incidents
 
 ### List active platform incidents
 GET {{baseUrl}}/api/v1/incidents?owner_team=platform&status=investigating
+
+### Search incidents by title, summary, service, or owner
+GET {{baseUrl}}/api/v1/incidents?q=canary&severity=sev2&status=investigating&owner_team=platform
 
 ### Resolve incident
 PATCH {{baseUrl}}/api/v1/incidents/replace-with-created-incident-id

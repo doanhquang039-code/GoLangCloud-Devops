@@ -32,6 +32,7 @@ func (c *EnvironmentController) Index(w http.ResponseWriter, r *http.Request) {
 
 func (c *EnvironmentController) GetEnvironments(w http.ResponseWriter, r *http.Request) {
 	environments, err := c.environmentService.GetEnvironments(r.Context(), model.EnvironmentFilter{
+		Query:         r.URL.Query().Get("q"),
 		ApplicationID: r.URL.Query().Get("application_id"),
 		ClusterID:     r.URL.Query().Get("cluster_id"),
 		Type:          r.URL.Query().Get("type"),

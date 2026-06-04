@@ -18,6 +18,14 @@ type Application struct {
 	UpdatedAt      time.Time         `json:"updated_at" bson:"updated_at"`
 }
 
+type ApplicationFilter struct {
+	Query       string
+	OwnerTeam   string
+	Criticality string
+	Runtime     string
+	Tag         string
+}
+
 type CreateApplicationRequest struct {
 	Name           string            `json:"name"`
 	Repository     string            `json:"repository"`

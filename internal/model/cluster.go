@@ -15,6 +15,7 @@ type Cluster struct {
 }
 
 type ClusterFilter struct {
+	Query    string
 	Provider string
 	Region   string
 	Status   string

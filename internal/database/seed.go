@@ -101,6 +101,35 @@ func SeedMongoData(ctx context.Context, db *mongo.Database) error {
 			StartedAt: oneHourAgo,
 		},
 	}
+	microservices := []model.Microservice{
+		{
+			ID:            "svc-payroll-api",
+			ApplicationID: "app-payroll-api",
+			Name:          "payroll-api",
+			OwnerTeam:     "platform",
+			Protocol:      "http",
+			Endpoint:      "http://payroll-api.hr-prod.svc.cluster.local:8080",
+			Status:        "active",
+			Dependencies:  []string{"mongodb", "audit-events"},
+			Config:        map[string]string{"TIMEOUT_SECONDS": "5"},
+			Tags:          []string{"backend", "payroll"},
+			CreatedAt:     threeHoursAgo,
+			UpdatedAt:     now,
+		},
+		{
+			ID:            "svc-payroll-events",
+			ApplicationID: "app-payroll-api",
+			Name:          "payroll-events",
+			OwnerTeam:     "platform",
+			Protocol:      "event",
+			Endpoint:      "topic://payroll-events",
+			Status:        "active",
+			Dependencies:  []string{"payroll-api"},
+			Tags:          []string{"events", "payroll"},
+			CreatedAt:     threeHoursAgo,
+			UpdatedAt:     now,
+		},
+	}
 	incidents := []model.Incident{
 		{ID: "inc-payroll-error-rate", Title: "Payroll API error rate elevated", Summary: "5xx responses increased after the latest canary rollout.", Severity: "sev2", Status: "investigating", ApplicationID: "app-payroll-api", ClusterID: "cls-eks-staging", DeploymentID: "dep-payroll-staging-150", OwnerTeam: "platform", CreatedAt: oneHourAgo, UpdatedAt: now},
 		{ID: "inc-recruitment-cache", Title: "Recruitment web cache warmed slowly", Summary: "Cache warmup exceeded the expected threshold during deployment.", Severity: "sev4", Status: "resolved", ApplicationID: "app-recruitment-web", ClusterID: "cls-eks-staging", DeploymentID: "dep-recruitment-staging-220", OwnerTeam: "talent", CreatedAt: twoHoursAgo, UpdatedAt: now, ResolvedAt: &resolvedAt},
@@ -116,6 +145,7 @@ func SeedMongoData(ctx context.Context, db *mongo.Database) error {
 		{"environments", environments},
 		{"deployments", deployments},
 		{"pipeline_runs", pipelineRuns},
+		{"microservices", microservices},
 		{"incidents", incidents},
 	}
 
@@ -161,6 +191,12 @@ func upsertSeedDocuments(ctx context.Context, collection *mongo.Collection, docu
 			}
 		}
 	case []model.PipelineRun:
+		for _, document := range typedDocuments {
+			if err := upsertSeedDocument(ctx, collection, document.ID, document); err != nil {
+				return err
+			}
+		}
+	case []model.Microservice:
 		for _, document := range typedDocuments {
 			if err := upsertSeedDocument(ctx, collection, document.ID, document); err != nil {
 				return err

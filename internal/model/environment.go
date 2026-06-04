@@ -16,6 +16,7 @@ type Environment struct {
 }
 
 type EnvironmentFilter struct {
+	Query         string
 	ApplicationID string
 	ClusterID     string
 	Type          string

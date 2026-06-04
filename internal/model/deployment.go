@@ -17,6 +17,7 @@ type Deployment struct {
 }
 
 type DeploymentFilter struct {
+	Query         string
 	ApplicationID string
 	ClusterID     string
 	Namespace     string

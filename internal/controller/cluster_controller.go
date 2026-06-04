@@ -32,6 +32,7 @@ func (c *ClusterController) Index(w http.ResponseWriter, r *http.Request) {
 
 func (c *ClusterController) GetClusters(w http.ResponseWriter, r *http.Request) {
 	clusters, err := c.clusterService.GetClusters(r.Context(), model.ClusterFilter{
+		Query:    r.URL.Query().Get("q"),
 		Provider: r.URL.Query().Get("provider"),
 		Region:   r.URL.Query().Get("region"),
 		Status:   r.URL.Query().Get("status"),

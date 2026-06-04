@@ -32,11 +32,12 @@ func NewDeploymentService(
 }
 
 func (s *DeploymentService) GetDeployments(ctx context.Context, filter model.DeploymentFilter) ([]model.Deployment, error) {
+	filter.Query = strings.TrimSpace(filter.Query)
 	filter.ApplicationID = strings.TrimSpace(filter.ApplicationID)
 	filter.ClusterID = strings.TrimSpace(filter.ClusterID)
 	filter.Namespace = strings.TrimSpace(filter.Namespace)
 	filter.Environment = strings.TrimSpace(filter.Environment)
-	filter.Status = strings.TrimSpace(filter.Status)
+	filter.Status = strings.ToLower(strings.TrimSpace(filter.Status))
 
 	if filter.Status != "" && !isValidDeploymentStatus(filter.Status) {
 		return nil, ErrInvalidDeployment
@@ -47,25 +48,28 @@ func (s *DeploymentService) GetDeployments(ctx context.Context, filter model.Dep
 		return nil, err
 	}
 
-	if filter.ApplicationID == "" && filter.ClusterID == "" && filter.Namespace == "" && filter.Environment == "" && filter.Status == "" {
+	if filter.Query == "" && filter.ApplicationID == "" && filter.ClusterID == "" && filter.Namespace == "" && filter.Environment == "" && filter.Status == "" {
 		return deployments, nil
 	}
 
 	filtered := make([]model.Deployment, 0, len(deployments))
 	for _, deployment := range deployments {
+		if filter.Query != "" && !deploymentMatchesQuery(deployment, filter.Query) {
+			continue
+		}
 		if filter.ApplicationID != "" && deployment.ApplicationID != filter.ApplicationID {
 			continue
 		}
 		if filter.ClusterID != "" && deployment.ClusterID != filter.ClusterID {
 			continue
 		}
-		if filter.Namespace != "" && deployment.Namespace != filter.Namespace {
+		if filter.Namespace != "" && !strings.EqualFold(deployment.Namespace, filter.Namespace) {
 			continue
 		}
-		if filter.Environment != "" && deployment.Environment != filter.Environment {
+		if filter.Environment != "" && !strings.EqualFold(deployment.Environment, filter.Environment) {
 			continue
 		}
-		if filter.Status != "" && deployment.Status != filter.Status {
+		if filter.Status != "" && !strings.EqualFold(deployment.Status, filter.Status) {
 			continue
 		}
 		filtered = append(filtered, deployment)
@@ -209,4 +213,17 @@ func (s *DeploymentService) DeleteDeployment(ctx context.Context, id string) err
 
 func isValidDeploymentStatus(status string) bool {
 	return status == "running" || status == "succeeded" || status == "failed"
+}
+
+func deploymentMatchesQuery(deployment model.Deployment, query string) bool {
+	query = strings.ToLower(query)
+	return strings.Contains(strings.ToLower(deployment.ID), query) ||
+		strings.Contains(strings.ToLower(deployment.ApplicationID), query) ||
+		strings.Contains(strings.ToLower(deployment.ClusterID), query) ||
+		strings.Contains(strings.ToLower(deployment.Namespace), query) ||
+		strings.Contains(strings.ToLower(deployment.Environment), query) ||
+		strings.Contains(strings.ToLower(deployment.Version), query) ||
+		strings.Contains(strings.ToLower(deployment.Strategy), query) ||
+		strings.Contains(strings.ToLower(deployment.Status), query) ||
+		strings.Contains(strings.ToLower(deployment.RequestedBy), query)
 }

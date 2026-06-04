@@ -36,7 +36,7 @@ func ConnectMongo(ctx context.Context, config MongoConfig) (*mongo.Database, fun
 }
 
 func EnsureMongoIndexes(ctx context.Context, db *mongo.Database) error {
-	collections := []string{"employees", "applications", "clusters", "environments", "deployments", "pipeline_runs", "incidents"}
+	collections := []string{"employees", "applications", "clusters", "environments", "deployments", "pipeline_runs", "microservices", "incidents"}
 	for _, collectionName := range collections {
 		collection := db.Collection(collectionName)
 		_, err := collection.Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -62,6 +62,16 @@ func EnsureMongoIndexes(ctx context.Context, db *mongo.Database) error {
 		Keys: bson.D{
 			{Key: "application_id", Value: 1},
 			{Key: "branch", Value: 1},
+			{Key: "status", Value: 1},
+		},
+	}); err != nil {
+		return err
+	}
+
+	if _, err := db.Collection("microservices").Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "application_id", Value: 1},
+			{Key: "protocol", Value: 1},
 			{Key: "status", Value: 1},
 		},
 	}); err != nil {

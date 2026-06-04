@@ -22,6 +22,7 @@ type PipelineStage struct {
 }
 
 type PipelineRunFilter struct {
+	Query         string
 	ApplicationID string
 	Branch        string
 	Status        string
@@ -37,5 +38,9 @@ type CreatePipelineRunRequest struct {
 }
 
 type UpdatePipelineRunStatusRequest struct {
+	Status string `json:"status"`
+}
+
+type UpdatePipelineStageStatusRequest struct {
 	Status string `json:"status"`
 }

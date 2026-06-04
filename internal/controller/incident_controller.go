@@ -32,6 +32,7 @@ func (c *IncidentController) Index(w http.ResponseWriter, r *http.Request) {
 
 func (c *IncidentController) GetIncidents(w http.ResponseWriter, r *http.Request) {
 	incidents, err := c.incidentService.GetIncidents(r.Context(), model.IncidentFilter{
+		Query:         r.URL.Query().Get("q"),
 		ApplicationID: r.URL.Query().Get("application_id"),
 		ClusterID:     r.URL.Query().Get("cluster_id"),
 		DeploymentID:  r.URL.Query().Get("deployment_id"),

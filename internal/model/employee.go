@@ -12,6 +12,12 @@ type Employee struct {
 	UpdatedAt  time.Time `json:"updated_at" bson:"updated_at"`
 }
 
+type EmployeeFilter struct {
+	Query      string
+	Department string
+	Title      string
+}
+
 type CreateEmployeeRequest struct {
 	Name       string `json:"name"`
 	Email      string `json:"email"`
