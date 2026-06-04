@@ -36,7 +36,7 @@ func ConnectMongo(ctx context.Context, config MongoConfig) (*mongo.Database, fun
 }
 
 func EnsureMongoIndexes(ctx context.Context, db *mongo.Database) error {
-	collections := []string{"employees", "applications", "clusters", "environments", "deployments", "pipeline_runs", "microservices", "incidents"}
+	collections := []string{"employees", "applications", "clusters", "environments", "deployments", "pipeline_runs", "incidents"}
 	for _, collectionName := range collections {
 		collection := db.Collection(collectionName)
 		_, err := collection.Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -70,9 +70,60 @@ func EnsureMongoIndexes(ctx context.Context, db *mongo.Database) error {
 
 	if _, err := db.Collection("microservices").Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bson.D{
+			{Key: "tenant_id", Value: 1},
+			{Key: "id", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
+	if _, err := db.Collection("microservices").Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "id", Value: 1}},
+	}); err != nil {
+		return err
+	}
+
+	if _, err := db.Collection("microservices").Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "tenant_id", Value: 1},
 			{Key: "application_id", Value: 1},
 			{Key: "protocol", Value: 1},
 			{Key: "status", Value: 1},
+		},
+	}); err != nil {
+		return err
+	}
+
+	if _, err := db.Collection("microservices").Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "tenant_id", Value: 1},
+			{Key: "cloud_provider", Value: 1},
+			{Key: "region", Value: 1},
+			{Key: "cluster_id", Value: 1},
+			{Key: "namespace", Value: 1},
+			{Key: "environment", Value: 1},
+			{Key: "runtime", Value: 1},
+		},
+	}); err != nil {
+		return err
+	}
+
+	if _, err := db.Collection("microservices").Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "tenant_id", Value: 1},
+			{Key: "updated_at", Value: -1},
+			{Key: "id", Value: 1},
+		},
+	}); err != nil {
+		return err
+	}
+
+	if _, err := db.Collection("microservices").Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "tenant_id", Value: 1},
+			{Key: "replicas", Value: -1},
+			{Key: "id", Value: 1},
 		},
 	}); err != nil {
 		return err

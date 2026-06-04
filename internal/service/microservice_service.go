@@ -30,11 +30,24 @@ func NewMicroserviceService(
 
 func (s *MicroserviceService) GetMicroservices(ctx context.Context, filter model.MicroserviceFilter) ([]model.Microservice, error) {
 	filter.Query = strings.TrimSpace(filter.Query)
+	filter.TenantID = strings.TrimSpace(filter.TenantID)
 	filter.ApplicationID = strings.TrimSpace(filter.ApplicationID)
 	filter.OwnerTeam = strings.TrimSpace(filter.OwnerTeam)
 	filter.Protocol = strings.ToLower(strings.TrimSpace(filter.Protocol))
 	filter.Status = strings.ToLower(strings.TrimSpace(filter.Status))
+	filter.CloudProvider = strings.ToLower(strings.TrimSpace(filter.CloudProvider))
+	filter.Region = strings.TrimSpace(filter.Region)
+	filter.ClusterID = strings.TrimSpace(filter.ClusterID)
+	filter.Namespace = strings.TrimSpace(filter.Namespace)
+	filter.Environment = strings.ToLower(strings.TrimSpace(filter.Environment))
+	filter.Runtime = strings.TrimSpace(filter.Runtime)
 	filter.Tag = strings.TrimSpace(filter.Tag)
+	filter.SortBy = strings.ToLower(strings.TrimSpace(filter.SortBy))
+	filter.SortOrder = strings.ToLower(strings.TrimSpace(filter.SortOrder))
+	filter.AfterID = strings.TrimSpace(filter.AfterID)
+	if filter.Limit == 0 {
+		filter.Limit = 100
+	}
 
 	if filter.Protocol != "" && !isValidMicroserviceProtocol(filter.Protocol) {
 		return nil, ErrInvalidMicroservice
@@ -42,40 +55,23 @@ func (s *MicroserviceService) GetMicroservices(ctx context.Context, filter model
 	if filter.Status != "" && !isValidMicroserviceStatus(filter.Status) {
 		return nil, ErrInvalidMicroservice
 	}
-
-	microservices, err := s.microserviceRepository.FindAll(ctx)
-	if err != nil {
-		return nil, err
+	if filter.Environment != "" && !isValidMicroserviceEnvironment(filter.Environment) {
+		return nil, ErrInvalidMicroservice
+	}
+	if filter.MinReplicas < 0 {
+		return nil, ErrInvalidMicroservice
+	}
+	if filter.Offset < 0 || filter.Limit < 1 || filter.Limit > 1000 {
+		return nil, ErrInvalidMicroservice
+	}
+	if filter.AfterID != "" && filter.Offset > 0 {
+		return nil, ErrInvalidMicroservice
+	}
+	if filter.AfterID != "" && filter.SortBy != "" && filter.SortBy != "id" {
+		return nil, ErrInvalidMicroservice
 	}
 
-	if filter.Query == "" && filter.ApplicationID == "" && filter.OwnerTeam == "" && filter.Protocol == "" && filter.Status == "" && filter.Tag == "" {
-		return microservices, nil
-	}
-
-	filtered := make([]model.Microservice, 0, len(microservices))
-	for _, microservice := range microservices {
-		if filter.Query != "" && !microserviceMatchesQuery(microservice, filter.Query) {
-			continue
-		}
-		if filter.ApplicationID != "" && microservice.ApplicationID != filter.ApplicationID {
-			continue
-		}
-		if filter.OwnerTeam != "" && !strings.EqualFold(microservice.OwnerTeam, filter.OwnerTeam) {
-			continue
-		}
-		if filter.Protocol != "" && !strings.EqualFold(microservice.Protocol, filter.Protocol) {
-			continue
-		}
-		if filter.Status != "" && !strings.EqualFold(microservice.Status, filter.Status) {
-			continue
-		}
-		if filter.Tag != "" && !hasApplicationTag(microservice.Tags, filter.Tag) {
-			continue
-		}
-		filtered = append(filtered, microservice)
-	}
-
-	return filtered, nil
+	return s.microserviceRepository.FindByFilter(ctx, filter)
 }
 
 func (s *MicroserviceService) GetMicroserviceByID(ctx context.Context, id string) (model.Microservice, error) {
@@ -91,7 +87,32 @@ func (s *MicroserviceService) CreateMicroservice(ctx context.Context, request mo
 	microservice, err := s.buildMicroservice(ctx, model.Microservice{
 		ID:        fmt.Sprintf("svc-%d", now.UnixNano()),
 		CreatedAt: now,
-	}, request.ApplicationID, request.Name, request.OwnerTeam, request.Protocol, request.Endpoint, request.Status, request.Dependencies, request.Config, request.Tags)
+	}, microserviceBuildInput{
+		TenantID:             request.TenantID,
+		ApplicationID:        request.ApplicationID,
+		Name:                 request.Name,
+		OwnerTeam:            request.OwnerTeam,
+		Protocol:             request.Protocol,
+		Endpoint:             request.Endpoint,
+		Status:               request.Status,
+		CloudProvider:        request.CloudProvider,
+		Region:               request.Region,
+		ClusterID:            request.ClusterID,
+		Namespace:            request.Namespace,
+		Environment:          request.Environment,
+		Runtime:              request.Runtime,
+		Image:                request.Image,
+		Version:              request.Version,
+		Replicas:             request.Replicas,
+		CPURequest:           request.CPURequest,
+		MemoryRequest:        request.MemoryRequest,
+		HealthPath:           request.HealthPath,
+		SLOTarget:            request.SLOTarget,
+		ErrorBudgetRemaining: request.ErrorBudgetRemaining,
+		Dependencies:         request.Dependencies,
+		Config:               request.Config,
+		Tags:                 request.Tags,
+	})
 	if err != nil {
 		return model.Microservice{}, err
 	}
@@ -111,7 +132,32 @@ func (s *MicroserviceService) UpdateMicroservice(ctx context.Context, id string,
 		return model.Microservice{}, err
 	}
 
-	microservice, err = s.buildMicroservice(ctx, microservice, request.ApplicationID, request.Name, request.OwnerTeam, request.Protocol, request.Endpoint, request.Status, request.Dependencies, request.Config, request.Tags)
+	microservice, err = s.buildMicroservice(ctx, microservice, microserviceBuildInput{
+		TenantID:             request.TenantID,
+		ApplicationID:        request.ApplicationID,
+		Name:                 request.Name,
+		OwnerTeam:            request.OwnerTeam,
+		Protocol:             request.Protocol,
+		Endpoint:             request.Endpoint,
+		Status:               request.Status,
+		CloudProvider:        request.CloudProvider,
+		Region:               request.Region,
+		ClusterID:            request.ClusterID,
+		Namespace:            request.Namespace,
+		Environment:          request.Environment,
+		Runtime:              request.Runtime,
+		Image:                request.Image,
+		Version:              request.Version,
+		Replicas:             request.Replicas,
+		CPURequest:           request.CPURequest,
+		MemoryRequest:        request.MemoryRequest,
+		HealthPath:           request.HealthPath,
+		SLOTarget:            request.SLOTarget,
+		ErrorBudgetRemaining: request.ErrorBudgetRemaining,
+		Dependencies:         request.Dependencies,
+		Config:               request.Config,
+		Tags:                 request.Tags,
+	})
 	if err != nil {
 		return model.Microservice{}, err
 	}
@@ -147,36 +193,117 @@ func (s *MicroserviceService) DeleteMicroservice(ctx context.Context, id string)
 	return s.microserviceRepository.DeleteByID(ctx, id)
 }
 
-func (s *MicroserviceService) buildMicroservice(ctx context.Context, microservice model.Microservice, applicationID, name, ownerTeam, protocol, endpoint, status string, dependencies []string, config map[string]string, tags []string) (model.Microservice, error) {
-	applicationID = strings.TrimSpace(applicationID)
-	name = strings.TrimSpace(name)
-	ownerTeam = strings.TrimSpace(ownerTeam)
-	protocol = strings.ToLower(strings.TrimSpace(protocol))
-	endpoint = strings.TrimSpace(endpoint)
-	status = strings.ToLower(strings.TrimSpace(status))
+type microserviceBuildInput struct {
+	TenantID             string
+	ApplicationID        string
+	Name                 string
+	OwnerTeam            string
+	Protocol             string
+	Endpoint             string
+	Status               string
+	CloudProvider        string
+	Region               string
+	ClusterID            string
+	Namespace            string
+	Environment          string
+	Runtime              string
+	Image                string
+	Version              string
+	Replicas             int
+	CPURequest           string
+	MemoryRequest        string
+	HealthPath           string
+	SLOTarget            float64
+	ErrorBudgetRemaining float64
+	Dependencies         []string
+	Config               map[string]string
+	Tags                 []string
+}
 
-	if applicationID == "" || name == "" || ownerTeam == "" || protocol == "" || endpoint == "" {
+func (s *MicroserviceService) buildMicroservice(ctx context.Context, microservice model.Microservice, input microserviceBuildInput) (model.Microservice, error) {
+	input.TenantID = strings.TrimSpace(input.TenantID)
+	input.ApplicationID = strings.TrimSpace(input.ApplicationID)
+	input.Name = strings.TrimSpace(input.Name)
+	input.OwnerTeam = strings.TrimSpace(input.OwnerTeam)
+	input.Protocol = strings.ToLower(strings.TrimSpace(input.Protocol))
+	input.Endpoint = strings.TrimSpace(input.Endpoint)
+	input.Status = strings.ToLower(strings.TrimSpace(input.Status))
+	input.CloudProvider = strings.ToLower(strings.TrimSpace(input.CloudProvider))
+	input.Region = strings.TrimSpace(input.Region)
+	input.ClusterID = strings.TrimSpace(input.ClusterID)
+	input.Namespace = strings.TrimSpace(input.Namespace)
+	input.Environment = strings.ToLower(strings.TrimSpace(input.Environment))
+	input.Runtime = strings.TrimSpace(input.Runtime)
+	input.Image = strings.TrimSpace(input.Image)
+	input.Version = strings.TrimSpace(input.Version)
+	input.CPURequest = strings.TrimSpace(input.CPURequest)
+	input.MemoryRequest = strings.TrimSpace(input.MemoryRequest)
+	input.HealthPath = strings.TrimSpace(input.HealthPath)
+
+	if input.ApplicationID == "" || input.Name == "" || input.OwnerTeam == "" || input.Protocol == "" || input.Endpoint == "" {
 		return model.Microservice{}, ErrInvalidMicroservice
 	}
-	if status == "" {
-		status = "active"
-	}
-	if !isValidMicroserviceProtocol(protocol) || !isValidMicroserviceStatus(status) {
+	if microservice.TenantID != "" && input.TenantID != "" && input.TenantID != microservice.TenantID {
 		return model.Microservice{}, ErrInvalidMicroservice
 	}
-	if _, err := s.applicationRepository.FindByID(ctx, applicationID); err != nil {
+	if input.TenantID == "" {
+		input.TenantID = microservice.TenantID
+	}
+	if input.Status == "" {
+		input.Status = "active"
+	}
+	if input.TenantID == "" {
+		input.TenantID = "default"
+	}
+	if input.Namespace == "" {
+		input.Namespace = "default"
+	}
+	if input.HealthPath == "" {
+		input.HealthPath = "/healthz"
+	}
+	if input.Replicas == 0 {
+		input.Replicas = 1
+	}
+	if input.SLOTarget == 0 {
+		input.SLOTarget = 99.9
+	}
+	if !isValidMicroserviceProtocol(input.Protocol) || !isValidMicroserviceStatus(input.Status) {
+		return model.Microservice{}, ErrInvalidMicroservice
+	}
+	if input.Environment != "" && !isValidMicroserviceEnvironment(input.Environment) {
+		return model.Microservice{}, ErrInvalidMicroservice
+	}
+	if input.Replicas < 1 || input.SLOTarget < 0 || input.SLOTarget > 100 || input.ErrorBudgetRemaining < 0 || input.ErrorBudgetRemaining > 100 {
+		return model.Microservice{}, ErrInvalidMicroservice
+	}
+	if _, err := s.applicationRepository.FindByID(ctx, input.ApplicationID); err != nil {
 		return model.Microservice{}, err
 	}
 
-	microservice.ApplicationID = applicationID
-	microservice.Name = name
-	microservice.OwnerTeam = ownerTeam
-	microservice.Protocol = protocol
-	microservice.Endpoint = endpoint
-	microservice.Status = status
-	microservice.Dependencies = normalizeStringList(dependencies)
-	microservice.Config = config
-	microservice.Tags = normalizeTags(tags)
+	microservice.ApplicationID = input.ApplicationID
+	microservice.TenantID = input.TenantID
+	microservice.Name = input.Name
+	microservice.OwnerTeam = input.OwnerTeam
+	microservice.Protocol = input.Protocol
+	microservice.Endpoint = input.Endpoint
+	microservice.Status = input.Status
+	microservice.CloudProvider = input.CloudProvider
+	microservice.Region = input.Region
+	microservice.ClusterID = input.ClusterID
+	microservice.Namespace = input.Namespace
+	microservice.Environment = input.Environment
+	microservice.Runtime = input.Runtime
+	microservice.Image = input.Image
+	microservice.Version = input.Version
+	microservice.Replicas = input.Replicas
+	microservice.CPURequest = input.CPURequest
+	microservice.MemoryRequest = input.MemoryRequest
+	microservice.HealthPath = input.HealthPath
+	microservice.SLOTarget = input.SLOTarget
+	microservice.ErrorBudgetRemaining = input.ErrorBudgetRemaining
+	microservice.Dependencies = normalizeStringList(input.Dependencies)
+	microservice.Config = input.Config
+	microservice.Tags = normalizeTags(input.Tags)
 
 	return microservice, nil
 }
@@ -187,6 +314,10 @@ func isValidMicroserviceProtocol(protocol string) bool {
 
 func isValidMicroserviceStatus(status string) bool {
 	return status == "active" || status == "degraded" || status == "offline" || status == "deprecated"
+}
+
+func isValidMicroserviceEnvironment(environment string) bool {
+	return environment == "development" || environment == "staging" || environment == "production"
 }
 
 func normalizeStringList(values []string) []string {
@@ -214,7 +345,18 @@ func microserviceMatchesQuery(microservice model.Microservice, query string) boo
 		strings.Contains(strings.ToLower(microservice.OwnerTeam), query) ||
 		strings.Contains(strings.ToLower(microservice.Protocol), query) ||
 		strings.Contains(strings.ToLower(microservice.Endpoint), query) ||
-		strings.Contains(strings.ToLower(microservice.Status), query) {
+		strings.Contains(strings.ToLower(microservice.Status), query) ||
+		strings.Contains(strings.ToLower(microservice.CloudProvider), query) ||
+		strings.Contains(strings.ToLower(microservice.Region), query) ||
+		strings.Contains(strings.ToLower(microservice.ClusterID), query) ||
+		strings.Contains(strings.ToLower(microservice.Namespace), query) ||
+		strings.Contains(strings.ToLower(microservice.Environment), query) ||
+		strings.Contains(strings.ToLower(microservice.Runtime), query) ||
+		strings.Contains(strings.ToLower(microservice.Image), query) ||
+		strings.Contains(strings.ToLower(microservice.Version), query) ||
+		strings.Contains(strings.ToLower(microservice.CPURequest), query) ||
+		strings.Contains(strings.ToLower(microservice.MemoryRequest), query) ||
+		strings.Contains(strings.ToLower(microservice.HealthPath), query) {
 		return true
 	}
 	for _, dependency := range microservice.Dependencies {

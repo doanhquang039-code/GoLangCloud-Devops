@@ -54,6 +54,16 @@ type PlatformSummary struct {
 	ByStatus      map[string]int `json:"deployments_by_status"`
 }
 
+type PlatformScorecardFilter struct {
+	Query       string
+	OwnerTeam   string
+	Criticality string
+	RiskLevel   string
+	MinScore    int
+	SortBy      string
+	SortOrder   string
+}
+
 type PlatformScorecard struct {
 	ApplicationID                     string   `json:"application_id"`
 	ApplicationName                   string   `json:"application_name"`
@@ -82,4 +92,15 @@ type PlatformScorecard struct {
 	OperationalReadinessScore         int      `json:"operational_readiness_score"`
 	RiskLevel                         string   `json:"risk_level"`
 	RiskReasons                       []string `json:"risk_reasons,omitempty"`
+}
+
+type EnvironmentDriftReportFilter struct {
+	Query           string
+	ApplicationID   string
+	EnvironmentType string
+	Status          string
+	DriftLevel      string
+	MaxDriftScore   int
+	SortBy          string
+	SortOrder       string
 }

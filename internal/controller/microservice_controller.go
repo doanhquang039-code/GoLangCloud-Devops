@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"hr-cloud-service/internal/model"
@@ -31,16 +32,14 @@ func (c *MicroserviceController) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *MicroserviceController) GetMicroservices(w http.ResponseWriter, r *http.Request) {
-	microservices, err := c.microserviceService.GetMicroservices(r.Context(), model.MicroserviceFilter{
-		Query:         r.URL.Query().Get("q"),
-		ApplicationID: r.URL.Query().Get("application_id"),
-		OwnerTeam:     r.URL.Query().Get("owner_team"),
-		Protocol:      r.URL.Query().Get("protocol"),
-		Status:        r.URL.Query().Get("status"),
-		Tag:           r.URL.Query().Get("tag"),
-	})
+	filter, ok := parseMicroserviceFilter(w, r)
+	if !ok {
+		return
+	}
+
+	microservices, err := c.microserviceService.GetMicroservices(r.Context(), filter)
 	if errors.Is(err, service.ErrInvalidMicroservice) {
-		writeError(w, http.StatusBadRequest, "protocol must be http, grpc, event or worker; status must be active, degraded, offline or deprecated")
+		writeError(w, http.StatusBadRequest, "protocol must be http, grpc, event or worker; status must be active, degraded, offline or deprecated; environment must be development, staging or production; limit must be 1 through 1000; offset must not be negative; after_id cannot be combined with offset or non-id sorting")
 		return
 	}
 	if err != nil {
@@ -49,6 +48,55 @@ func (c *MicroserviceController) GetMicroservices(w http.ResponseWriter, r *http
 	}
 
 	writeJSON(w, http.StatusOK, microservices)
+}
+
+func parseMicroserviceFilter(w http.ResponseWriter, r *http.Request) (model.MicroserviceFilter, bool) {
+	query := r.URL.Query()
+	filter := model.MicroserviceFilter{
+		Query:         r.URL.Query().Get("q"),
+		TenantID:      r.URL.Query().Get("tenant_id"),
+		ApplicationID: r.URL.Query().Get("application_id"),
+		OwnerTeam:     r.URL.Query().Get("owner_team"),
+		Protocol:      r.URL.Query().Get("protocol"),
+		Status:        r.URL.Query().Get("status"),
+		CloudProvider: r.URL.Query().Get("cloud_provider"),
+		Region:        r.URL.Query().Get("region"),
+		ClusterID:     r.URL.Query().Get("cluster_id"),
+		Namespace:     r.URL.Query().Get("namespace"),
+		Environment:   r.URL.Query().Get("environment"),
+		Runtime:       r.URL.Query().Get("runtime"),
+		Tag:           r.URL.Query().Get("tag"),
+		SortBy:        r.URL.Query().Get("sort"),
+		SortOrder:     r.URL.Query().Get("order"),
+	}
+	if raw := query.Get("min_replicas"); raw != "" {
+		minReplicas, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "min_replicas must be a number")
+			return model.MicroserviceFilter{}, false
+		}
+		filter.MinReplicas = minReplicas
+	}
+	if raw := query.Get("limit"); raw != "" {
+		limit, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "limit must be a number")
+			return model.MicroserviceFilter{}, false
+		}
+		filter.Limit = limit
+	}
+	if raw := query.Get("after_id"); raw != "" {
+		filter.AfterID = raw
+	}
+	if raw := query.Get("offset"); raw != "" {
+		offset, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "offset must be a number")
+			return model.MicroserviceFilter{}, false
+		}
+		filter.Offset = offset
+	}
+	return filter, true
 }
 
 func (c *MicroserviceController) ShowOrUpdate(w http.ResponseWriter, r *http.Request) {
@@ -141,7 +189,7 @@ func (c *MicroserviceController) DeleteMicroservice(w http.ResponseWriter, r *ht
 
 func (c *MicroserviceController) handleMutationResult(w http.ResponseWriter, microservice model.Microservice, err error, fallback string, status int) {
 	if errors.Is(err, service.ErrInvalidMicroservice) {
-		writeError(w, http.StatusBadRequest, "application_id, name, owner_team, protocol and endpoint are required; protocol must be http, grpc, event or worker; status must be active, degraded, offline or deprecated")
+		writeError(w, http.StatusBadRequest, "application_id, name, owner_team, protocol and endpoint are required; protocol must be http, grpc, event or worker; status must be active, degraded, offline or deprecated; environment must be development, staging or production; replicas must be at least 1; slo_target and error_budget_remaining must be between 0 and 100")
 		return
 	}
 	if errors.Is(err, repository.ErrMicroserviceNotFound) {

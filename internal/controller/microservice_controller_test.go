@@ -23,11 +23,26 @@ func TestMicroserviceControllerCreateUpdateAndPatchStatus(t *testing.T) {
 	}
 
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/microservices", bytes.NewBufferString(`{
+		"tenant_id": "tenant-hr",
 		"application_id": "app-payroll-api",
 		"name": "payroll-api",
 		"owner_team": "platform",
 		"protocol": "HTTP",
-		"endpoint": "http://payroll-api:8080"
+		"endpoint": "http://payroll-api:8080",
+		"cloud_provider": "AWS",
+		"region": "ap-southeast-1",
+		"cluster_id": "cls-eks-staging",
+		"namespace": "hr-staging",
+		"environment": "STAGING",
+		"runtime": "go1.22",
+		"image": "ghcr.io/company/payroll-api:v1.2.3",
+		"version": "v1.2.3",
+		"replicas": 3,
+		"cpu_request": "250m",
+		"memory_request": "512Mi",
+		"health_path": "/readyz",
+		"slo_target": 99.95,
+		"error_budget_remaining": 82.5
 	}`))
 	response := httptest.NewRecorder()
 	microserviceController.Index(response, request)
@@ -41,11 +56,26 @@ func TestMicroserviceControllerCreateUpdateAndPatchStatus(t *testing.T) {
 	}
 
 	updateRequest := httptest.NewRequest(http.MethodPut, "/api/v1/microservices/"+microservice.ID, bytes.NewBufferString(`{
+		"tenant_id": "tenant-hr",
 		"application_id": "app-payroll-api",
 		"name": "payroll-worker",
 		"owner_team": "platform",
 		"protocol": "WORKER",
 		"endpoint": "queue://payroll-jobs",
+		"cloud_provider": "aws",
+		"region": "ap-southeast-1",
+		"cluster_id": "cls-eks-staging",
+		"namespace": "hr-staging",
+		"environment": "staging",
+		"runtime": "go1.22",
+		"image": "ghcr.io/company/payroll-worker:v1.2.4",
+		"version": "v1.2.4",
+		"replicas": 4,
+		"cpu_request": "500m",
+		"memory_request": "768Mi",
+		"health_path": "/healthz",
+		"slo_target": 99.9,
+		"error_budget_remaining": 75,
 		"dependencies": ["mongodb", "payroll-events"],
 		"config": {
 			"CONCURRENCY": "4"
@@ -65,6 +95,9 @@ func TestMicroserviceControllerCreateUpdateAndPatchStatus(t *testing.T) {
 	if updated.Name != "payroll-worker" || updated.Protocol != "worker" || updated.Endpoint != "queue://payroll-jobs" {
 		t.Fatalf("expected updated worker microservice, got %#v", updated)
 	}
+	if updated.Replicas != 4 || updated.CloudProvider != "aws" || updated.Environment != "staging" {
+		t.Fatalf("expected updated cloud metadata, got %#v", updated)
+	}
 
 	patchRequest := httptest.NewRequest(http.MethodPatch, "/api/v1/microservices/"+microservice.ID, bytes.NewBufferString(`{"status":"DEGRADED"}`))
 	patchResponse := httptest.NewRecorder()
@@ -81,7 +114,7 @@ func TestMicroserviceControllerCreateUpdateAndPatchStatus(t *testing.T) {
 		t.Fatalf("expected degraded status, got %q", patched.Status)
 	}
 
-	listRequest := httptest.NewRequest(http.MethodGet, "/api/v1/microservices?q=payroll-events&status=degraded", nil)
+	listRequest := httptest.NewRequest(http.MethodGet, "/api/v1/microservices?tenant_id=tenant-hr&q=payroll-events&status=degraded&cloud_provider=aws&region=ap-southeast-1&namespace=hr-staging&environment=staging&runtime=go1.22&min_replicas=4&limit=100&sort=id", nil)
 	listResponse := httptest.NewRecorder()
 	microserviceController.Index(listResponse, listRequest)
 	if listResponse.Code != http.StatusOK {

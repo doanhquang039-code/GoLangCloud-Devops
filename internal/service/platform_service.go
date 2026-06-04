@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"sort"
+	"strings"
 
 	"hr-cloud-service/internal/model"
 	"hr-cloud-service/internal/repository"
@@ -91,7 +92,12 @@ func (s *PlatformService) GetSummary(ctx context.Context) (model.PlatformSummary
 	}, nil
 }
 
-func (s *PlatformService) GetScorecards(ctx context.Context) ([]model.PlatformScorecard, error) {
+func (s *PlatformService) GetScorecards(ctx context.Context, filters ...model.PlatformScorecardFilter) ([]model.PlatformScorecard, error) {
+	filter := model.PlatformScorecardFilter{}
+	if len(filters) > 0 {
+		filter = normalizePlatformScorecardFilter(filters[0])
+	}
+
 	applications, err := s.applicationRepository.FindAll(ctx)
 	if err != nil {
 		return nil, err
@@ -213,17 +219,18 @@ func (s *PlatformService) GetScorecards(ctx context.Context) ([]model.PlatformSc
 		scorecards = append(scorecards, scorecard)
 	}
 
-	sort.Slice(scorecards, func(i, j int) bool {
-		if scorecards[i].OperationalReadinessScore == scorecards[j].OperationalReadinessScore {
-			return scorecards[i].ApplicationName < scorecards[j].ApplicationName
-		}
-		return scorecards[i].OperationalReadinessScore < scorecards[j].OperationalReadinessScore
-	})
+	scorecards = filterPlatformScorecards(scorecards, filter)
+	sortPlatformScorecards(scorecards, filter.SortBy, filter.SortOrder)
 
 	return scorecards, nil
 }
 
-func (s *PlatformService) GetEnvironmentDriftReports(ctx context.Context) ([]model.EnvironmentDriftReport, error) {
+func (s *PlatformService) GetEnvironmentDriftReports(ctx context.Context, filters ...model.EnvironmentDriftReportFilter) ([]model.EnvironmentDriftReport, error) {
+	filter := model.EnvironmentDriftReportFilter{}
+	if len(filters) > 0 {
+		filter = normalizeEnvironmentDriftReportFilter(filters[0])
+	}
+
 	applications, err := s.applicationRepository.FindAll(ctx)
 	if err != nil {
 		return nil, err
@@ -304,14 +311,190 @@ func (s *PlatformService) GetEnvironmentDriftReports(ctx context.Context) ([]mod
 		reports = append(reports, report)
 	}
 
-	sort.Slice(reports, func(i, j int) bool {
-		if reports[i].DriftScore == reports[j].DriftScore {
-			return reports[i].EnvironmentName < reports[j].EnvironmentName
-		}
-		return reports[i].DriftScore < reports[j].DriftScore
-	})
+	reports = filterEnvironmentDriftReports(reports, filter)
+	sortEnvironmentDriftReports(reports, filter.SortBy, filter.SortOrder)
 
 	return reports, nil
+}
+
+func normalizePlatformScorecardFilter(filter model.PlatformScorecardFilter) model.PlatformScorecardFilter {
+	filter.Query = strings.TrimSpace(filter.Query)
+	filter.OwnerTeam = strings.TrimSpace(filter.OwnerTeam)
+	filter.Criticality = strings.ToLower(strings.TrimSpace(filter.Criticality))
+	filter.RiskLevel = strings.ToLower(strings.TrimSpace(filter.RiskLevel))
+	filter.SortBy = strings.ToLower(strings.TrimSpace(filter.SortBy))
+	filter.SortOrder = strings.ToLower(strings.TrimSpace(filter.SortOrder))
+	return filter
+}
+
+func filterPlatformScorecards(scorecards []model.PlatformScorecard, filter model.PlatformScorecardFilter) []model.PlatformScorecard {
+	if filter.Query == "" && filter.OwnerTeam == "" && filter.Criticality == "" && filter.RiskLevel == "" && filter.MinScore == 0 {
+		return scorecards
+	}
+	filtered := make([]model.PlatformScorecard, 0, len(scorecards))
+	for _, scorecard := range scorecards {
+		if filter.Query != "" && !platformScorecardMatchesQuery(scorecard, filter.Query) {
+			continue
+		}
+		if filter.OwnerTeam != "" && !strings.EqualFold(scorecard.OwnerTeam, filter.OwnerTeam) {
+			continue
+		}
+		if filter.Criticality != "" && !strings.EqualFold(scorecard.Criticality, filter.Criticality) {
+			continue
+		}
+		if filter.RiskLevel != "" && !strings.EqualFold(scorecard.RiskLevel, filter.RiskLevel) {
+			continue
+		}
+		if filter.MinScore > 0 && scorecard.OperationalReadinessScore < filter.MinScore {
+			continue
+		}
+		filtered = append(filtered, scorecard)
+	}
+	return filtered
+}
+
+func platformScorecardMatchesQuery(scorecard model.PlatformScorecard, query string) bool {
+	query = strings.ToLower(query)
+	if strings.Contains(strings.ToLower(scorecard.ApplicationID), query) ||
+		strings.Contains(strings.ToLower(scorecard.ApplicationName), query) ||
+		strings.Contains(strings.ToLower(scorecard.OwnerTeam), query) ||
+		strings.Contains(strings.ToLower(scorecard.Criticality), query) ||
+		strings.Contains(strings.ToLower(scorecard.RiskLevel), query) {
+		return true
+	}
+	for _, reason := range scorecard.RiskReasons {
+		if strings.Contains(strings.ToLower(reason), query) {
+			return true
+		}
+	}
+	return false
+}
+
+func sortPlatformScorecards(scorecards []model.PlatformScorecard, sortBy string, sortOrder string) {
+	desc := sortOrder == "desc"
+	sort.Slice(scorecards, func(i, j int) bool {
+		less, greater := false, false
+		switch sortBy {
+		case "name":
+			less = scorecards[i].ApplicationName < scorecards[j].ApplicationName
+			greater = scorecards[i].ApplicationName > scorecards[j].ApplicationName
+		case "owner_team":
+			less = scorecards[i].OwnerTeam < scorecards[j].OwnerTeam
+			greater = scorecards[i].OwnerTeam > scorecards[j].OwnerTeam
+		case "risk":
+			less = scorecards[i].RiskLevel < scorecards[j].RiskLevel
+			greater = scorecards[i].RiskLevel > scorecards[j].RiskLevel
+		default:
+			if scorecards[i].OperationalReadinessScore == scorecards[j].OperationalReadinessScore {
+				less = scorecards[i].ApplicationName < scorecards[j].ApplicationName
+				greater = scorecards[i].ApplicationName > scorecards[j].ApplicationName
+			} else {
+				less = scorecards[i].OperationalReadinessScore < scorecards[j].OperationalReadinessScore
+				greater = scorecards[i].OperationalReadinessScore > scorecards[j].OperationalReadinessScore
+			}
+		}
+		if desc {
+			return greater
+		}
+		return less
+	})
+}
+
+func normalizeEnvironmentDriftReportFilter(filter model.EnvironmentDriftReportFilter) model.EnvironmentDriftReportFilter {
+	filter.Query = strings.TrimSpace(filter.Query)
+	filter.ApplicationID = strings.TrimSpace(filter.ApplicationID)
+	filter.EnvironmentType = strings.ToLower(strings.TrimSpace(filter.EnvironmentType))
+	filter.Status = strings.ToLower(strings.TrimSpace(filter.Status))
+	filter.DriftLevel = strings.ToLower(strings.TrimSpace(filter.DriftLevel))
+	filter.SortBy = strings.ToLower(strings.TrimSpace(filter.SortBy))
+	filter.SortOrder = strings.ToLower(strings.TrimSpace(filter.SortOrder))
+	return filter
+}
+
+func filterEnvironmentDriftReports(reports []model.EnvironmentDriftReport, filter model.EnvironmentDriftReportFilter) []model.EnvironmentDriftReport {
+	if filter.Query == "" && filter.ApplicationID == "" && filter.EnvironmentType == "" && filter.Status == "" && filter.DriftLevel == "" && filter.MaxDriftScore == 0 {
+		return reports
+	}
+	filtered := make([]model.EnvironmentDriftReport, 0, len(reports))
+	for _, report := range reports {
+		if filter.Query != "" && !environmentDriftReportMatchesQuery(report, filter.Query) {
+			continue
+		}
+		if filter.ApplicationID != "" && report.ApplicationID != filter.ApplicationID {
+			continue
+		}
+		if filter.EnvironmentType != "" && !strings.EqualFold(report.EnvironmentType, filter.EnvironmentType) {
+			continue
+		}
+		if filter.Status != "" && !strings.EqualFold(report.Status, filter.Status) {
+			continue
+		}
+		if filter.DriftLevel != "" && !strings.EqualFold(report.DriftLevel, filter.DriftLevel) {
+			continue
+		}
+		if filter.MaxDriftScore > 0 && report.DriftScore > filter.MaxDriftScore {
+			continue
+		}
+		filtered = append(filtered, report)
+	}
+	return filtered
+}
+
+func environmentDriftReportMatchesQuery(report model.EnvironmentDriftReport, query string) bool {
+	query = strings.ToLower(query)
+	if strings.Contains(strings.ToLower(report.EnvironmentID), query) ||
+		strings.Contains(strings.ToLower(report.EnvironmentName), query) ||
+		strings.Contains(strings.ToLower(report.ApplicationID), query) ||
+		strings.Contains(strings.ToLower(report.ApplicationName), query) ||
+		strings.Contains(strings.ToLower(report.ClusterID), query) ||
+		strings.Contains(strings.ToLower(report.Namespace), query) ||
+		strings.Contains(strings.ToLower(report.DriftLevel), query) {
+		return true
+	}
+	return driftListMatchesQuery(report.MissingVariables, query) ||
+		driftListMatchesQuery(report.ChangedVariables, query) ||
+		driftListMatchesQuery(report.ExtraVariables, query)
+}
+
+func driftListMatchesQuery(drifts []model.EnvironmentVariableDrift, query string) bool {
+	for _, drift := range drifts {
+		if strings.Contains(strings.ToLower(drift.Key), query) ||
+			strings.Contains(strings.ToLower(drift.ExpectedValue), query) ||
+			strings.Contains(strings.ToLower(drift.ActualValue), query) {
+			return true
+		}
+	}
+	return false
+}
+
+func sortEnvironmentDriftReports(reports []model.EnvironmentDriftReport, sortBy string, sortOrder string) {
+	desc := sortOrder == "desc"
+	sort.Slice(reports, func(i, j int) bool {
+		less, greater := false, false
+		switch sortBy {
+		case "name":
+			less = reports[i].EnvironmentName < reports[j].EnvironmentName
+			greater = reports[i].EnvironmentName > reports[j].EnvironmentName
+		case "application":
+			less = reports[i].ApplicationName < reports[j].ApplicationName
+			greater = reports[i].ApplicationName > reports[j].ApplicationName
+		case "level":
+			less = reports[i].DriftLevel < reports[j].DriftLevel
+			greater = reports[i].DriftLevel > reports[j].DriftLevel
+		default:
+			if reports[i].DriftScore == reports[j].DriftScore {
+				less = reports[i].EnvironmentName < reports[j].EnvironmentName
+				greater = reports[i].EnvironmentName > reports[j].EnvironmentName
+			} else {
+				less = reports[i].DriftScore < reports[j].DriftScore
+				greater = reports[i].DriftScore > reports[j].DriftScore
+			}
+		}
+		if desc {
+			return greater
+		}
+		return less
+	})
 }
 
 func successRate(successful int, total int) float64 {
