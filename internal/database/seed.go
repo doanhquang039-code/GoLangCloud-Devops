@@ -61,6 +61,11 @@ func SeedMongoData(ctx context.Context, db *mongo.Database) error {
 		{ID: "cls-eks-staging", Name: "eks-staging-ap-southeast-1", Provider: "aws", Region: "ap-southeast-1", Endpoint: "https://staging.example.eks.amazonaws.com", Version: "1.30", Status: "ready", CreatedAt: threeHoursAgo, UpdatedAt: now},
 		{ID: "cls-gke-prod", Name: "gke-prod-asia-southeast1", Provider: "gcp", Region: "asia-southeast1", Endpoint: "https://prod.example.gke.googleapis.com", Version: "1.30", Status: "ready", CreatedAt: threeHoursAgo, UpdatedAt: now},
 	}
+	cloudAccounts := []model.CloudAccount{
+		{ID: "cloud-aws-hr-prod", Name: "hr-prod-aws", Provider: "aws", AccountID: "123456789012", Region: "ap-southeast-1", OwnerTeam: "platform", Environment: "production", Status: "active", MonthlyCostUSD: 18420.75, BudgetUSD: 25000, ComplianceScore: 91, BackupStatus: "protected", OpenSecurityFindings: 3, Tags: []string{"hr", "prod", "aws"}, CreatedAt: threeHoursAgo, UpdatedAt: now},
+		{ID: "cloud-gcp-shared-prod", Name: "shared-prod-gcp", Provider: "gcp", AccountID: "company-prod-001", Region: "asia-southeast1", OwnerTeam: "sre", Environment: "production", Status: "active", MonthlyCostUSD: 22310.40, BudgetUSD: 30000, ComplianceScore: 88, BackupStatus: "protected", OpenSecurityFindings: 5, Tags: []string{"shared", "prod", "gcp"}, CreatedAt: threeHoursAgo, UpdatedAt: now},
+		{ID: "cloud-azure-talent-staging", Name: "talent-staging-azure", Provider: "azure", AccountID: "az-talent-stg-01", Region: "southeastasia", OwnerTeam: "talent", Environment: "staging", Status: "restricted", MonthlyCostUSD: 3120.00, BudgetUSD: 5000, ComplianceScore: 76, BackupStatus: "partial", OpenSecurityFindings: 7, Tags: []string{"talent", "staging", "azure"}, CreatedAt: threeHoursAgo, UpdatedAt: now},
+	}
 	environments := []model.Environment{
 		{ID: "env-payroll-staging", Name: "payroll-staging", Type: "staging", ApplicationID: "app-payroll-api", ClusterID: "cls-eks-staging", Namespace: "hr-staging", Status: "active", Variables: map[string]string{"LOG_LEVEL": "debug", "MONGO_DATABASE": "hr_cloud_staging"}, CreatedAt: twoHoursAgo, UpdatedAt: now},
 		{ID: "env-payroll-prod", Name: "payroll-prod", Type: "production", ApplicationID: "app-payroll-api", ClusterID: "cls-gke-prod", Namespace: "hr-prod", Status: "active", Variables: map[string]string{"LOG_LEVEL": "info", "MONGO_DATABASE": "hr_cloud"}, CreatedAt: twoHoursAgo, UpdatedAt: now},
@@ -172,6 +177,7 @@ func SeedMongoData(ctx context.Context, db *mongo.Database) error {
 		{"employees", employees},
 		{"applications", applications},
 		{"clusters", clusters},
+		{"cloud_accounts", cloudAccounts},
 		{"environments", environments},
 		{"deployments", deployments},
 		{"pipeline_runs", pipelineRuns},
@@ -203,6 +209,12 @@ func upsertSeedDocuments(ctx context.Context, collection *mongo.Collection, docu
 			}
 		}
 	case []model.Cluster:
+		for _, document := range typedDocuments {
+			if err := upsertSeedDocument(ctx, collection, document.ID, document); err != nil {
+				return err
+			}
+		}
+	case []model.CloudAccount:
 		for _, document := range typedDocuments {
 			if err := upsertSeedDocument(ctx, collection, document.ID, document); err != nil {
 				return err

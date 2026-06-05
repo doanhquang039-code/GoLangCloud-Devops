@@ -131,6 +131,72 @@ func TestRouterApplicationPipelineFlow(t *testing.T) {
 	}
 }
 
+func TestRouterCloudAccountFlow(t *testing.T) {
+	router := newTestRouter()
+
+	createBody := bytes.NewBufferString(`{
+		"name": "hr-prod-aws",
+		"provider": "aws",
+		"account_id": "123456789012",
+		"region": "ap-southeast-1",
+		"owner_team": "platform",
+		"environment": "production",
+		"monthly_cost_usd": 1250,
+		"budget_usd": 2000,
+		"compliance_score": 90,
+		"backup_status": "protected",
+		"tags": ["hr", "prod"]
+	}`)
+	createResponse := httptest.NewRecorder()
+	router.ServeHTTP(createResponse, httptest.NewRequest(http.MethodPost, "/api/v1/cloud-accounts", createBody))
+	if createResponse.Code != http.StatusCreated {
+		t.Fatalf("expected cloud account create status %d, got %d: %s", http.StatusCreated, createResponse.Code, createResponse.Body.String())
+	}
+
+	var account model.CloudAccount
+	if err := json.NewDecoder(createResponse.Body).Decode(&account); err != nil {
+		t.Fatal(err)
+	}
+
+	patchResponse := httptest.NewRecorder()
+	router.ServeHTTP(patchResponse, httptest.NewRequest(http.MethodPatch, "/api/v1/cloud-accounts/"+account.ID, bytes.NewBufferString(`{"status":"restricted","backup_status":"partial"}`)))
+	if patchResponse.Code != http.StatusOK {
+		t.Fatalf("expected cloud account patch status %d, got %d: %s", http.StatusOK, patchResponse.Code, patchResponse.Body.String())
+	}
+
+	listResponse := httptest.NewRecorder()
+	router.ServeHTTP(listResponse, httptest.NewRequest(http.MethodGet, "/api/v1/cloud-accounts?provider=aws&backup_status=partial&tag=prod", nil))
+	if listResponse.Code != http.StatusOK {
+		t.Fatalf("expected cloud account list status %d, got %d: %s", http.StatusOK, listResponse.Code, listResponse.Body.String())
+	}
+
+	var accounts []model.CloudAccount
+	if err := json.NewDecoder(listResponse.Body).Decode(&accounts); err != nil {
+		t.Fatal(err)
+	}
+	if len(accounts) != 1 || accounts[0].ID != account.ID {
+		t.Fatalf("expected filtered cloud account %q, got %#v", account.ID, accounts)
+	}
+
+	summaryResponse := httptest.NewRecorder()
+	router.ServeHTTP(summaryResponse, httptest.NewRequest(http.MethodGet, "/api/v1/cloud/summary", nil))
+	if summaryResponse.Code != http.StatusOK {
+		t.Fatalf("expected cloud summary status %d, got %d: %s", http.StatusOK, summaryResponse.Code, summaryResponse.Body.String())
+	}
+
+	violationsResponse := httptest.NewRecorder()
+	router.ServeHTTP(violationsResponse, httptest.NewRequest(http.MethodGet, "/api/v1/cloud/policy-violations?provider=aws", nil))
+	if violationsResponse.Code != http.StatusOK {
+		t.Fatalf("expected cloud policy violations status %d, got %d: %s", http.StatusOK, violationsResponse.Code, violationsResponse.Body.String())
+	}
+
+	planResponse := httptest.NewRecorder()
+	router.ServeHTTP(planResponse, httptest.NewRequest(http.MethodGet, "/api/v1/cloud/remediation-plan", nil))
+	if planResponse.Code != http.StatusOK {
+		t.Fatalf("expected cloud remediation plan status %d, got %d: %s", http.StatusOK, planResponse.Code, planResponse.Body.String())
+	}
+}
+
 func newTestRouter() http.Handler {
 	employeeRepository := repository.NewInMemoryEmployeeRepository()
 	applicationRepository := repository.NewInMemoryApplicationRepository()
@@ -140,6 +206,7 @@ func newTestRouter() http.Handler {
 	pipelineRepository := repository.NewInMemoryPipelineRepository()
 	microserviceRepository := repository.NewInMemoryMicroserviceRepository()
 	incidentRepository := repository.NewInMemoryIncidentRepository()
+	cloudAccountRepository := repository.NewInMemoryCloudAccountRepository()
 
 	employeeService := service.NewEmployeeService(employeeRepository)
 	applicationService := service.NewApplicationService(applicationRepository)
@@ -149,6 +216,7 @@ func newTestRouter() http.Handler {
 	pipelineService := service.NewPipelineService(applicationRepository, pipelineRepository)
 	microserviceService := service.NewMicroserviceService(applicationRepository, microserviceRepository)
 	incidentService := service.NewIncidentService(applicationRepository, clusterRepository, deploymentRepository, incidentRepository)
+	cloudAccountService := service.NewCloudAccountService(cloudAccountRepository)
 	platformService := service.NewPlatformService(applicationRepository, clusterRepository, environmentRepository, deploymentRepository, pipelineRepository, incidentRepository)
 
 	return NewRouter(
@@ -161,6 +229,7 @@ func newTestRouter() http.Handler {
 		controller.NewPipelineController(pipelineService),
 		controller.NewMicroserviceController(microserviceService),
 		controller.NewIncidentController(incidentService),
+		controller.NewCloudAccountController(cloudAccountService),
 		controller.NewPlatformController(platformService),
 	)
 }

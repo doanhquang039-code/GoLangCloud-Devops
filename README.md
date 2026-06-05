@@ -4,7 +4,8 @@ Go API service for HR/cloud platform operations. It tracks employees, applicatio
 
 ## Features
 
-- REST API with CRUD for employees, applications, clusters, environments, deployments, microservices, and incidents.
+- REST API with CRUD for employees, applications, clusters, cloud accounts, environments, deployments, microservices, and incidents.
+- Cloud account inventory with provider, region, owner, environment, monthly cost, budget, compliance, backup posture, and security finding metadata.
 - Cloud microservice inventory with provider, region, cluster, namespace, environment, runtime, image, replicas, resource requests, health path, SLO, and error budget metadata.
 - Pipeline run creation, status updates, stage updates, and deletion.
 - Search and filters on list endpoints with `q`, status/type/team fields, and tags where applicable.
@@ -117,6 +118,7 @@ Base URL: `http://localhost:8080`
 | Employees | `/api/v1/employees`, `/api/v1/employees/{id}` |
 | Applications | `/api/v1/applications`, `/api/v1/applications/{id}` |
 | Clusters | `/api/v1/clusters`, `/api/v1/clusters/{id}` |
+| Cloud Accounts | `/api/v1/cloud-accounts`, `/api/v1/cloud-accounts/{id}`, `/api/v1/cloud/summary`, `/api/v1/cloud/policy-violations`, `/api/v1/cloud/remediation-plan` |
 | Environments | `/api/v1/environments`, `/api/v1/environments/{id}` |
 | Deployments | `/api/v1/deployments`, `/api/v1/deployments/{id}` |
 | Pipelines | `/api/v1/pipelines`, `/api/v1/pipelines/{id}`, `/api/v1/pipelines/{id}/stages/{stage}` |
@@ -129,6 +131,10 @@ Common list examples:
 ```http
 GET /api/v1/applications?q=payroll&owner_team=platform
 GET /api/v1/clusters?q=staging&provider=aws&status=ready
+GET /api/v1/cloud-accounts?provider=aws&owner_team=platform&environment=production&backup_status=protected&tag=prod
+GET /api/v1/cloud/summary
+GET /api/v1/cloud/policy-violations?provider=aws&environment=production
+GET /api/v1/cloud/remediation-plan?owner_team=platform
 GET /api/v1/environments?q=payroll-v2&type=staging&status=active
 GET /api/v1/deployments?q=canary&environment=staging&status=running
 GET /api/v1/pipelines?q=security&status=running

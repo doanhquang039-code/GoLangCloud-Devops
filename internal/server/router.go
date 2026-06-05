@@ -16,6 +16,7 @@ func NewRouter(
 	pipelineController *controller.PipelineController,
 	microserviceController *controller.MicroserviceController,
 	incidentController *controller.IncidentController,
+	cloudAccountController *controller.CloudAccountController,
 	platformController *controller.PlatformController,
 ) http.Handler {
 	mux := http.NewServeMux()
@@ -41,6 +42,11 @@ func NewRouter(
 	mux.HandleFunc("/api/v1/microservices/", microserviceController.ShowOrUpdate)
 	mux.HandleFunc("/api/v1/incidents", incidentController.Index)
 	mux.HandleFunc("/api/v1/incidents/", incidentController.ShowOrUpdate)
+	mux.HandleFunc("/api/v1/cloud-accounts", cloudAccountController.Index)
+	mux.HandleFunc("/api/v1/cloud-accounts/", cloudAccountController.ShowOrUpdate)
+	mux.HandleFunc("/api/v1/cloud/summary", cloudAccountController.Summary)
+	mux.HandleFunc("/api/v1/cloud/policy-violations", cloudAccountController.PolicyViolations)
+	mux.HandleFunc("/api/v1/cloud/remediation-plan", cloudAccountController.RemediationPlan)
 	mux.HandleFunc("/api/v1/platform/summary", platformController.Summary)
 	mux.HandleFunc("/api/v1/platform/scorecards", platformController.Scorecards)
 	mux.HandleFunc("/api/v1/platform/environment-drift", platformController.EnvironmentDrift)

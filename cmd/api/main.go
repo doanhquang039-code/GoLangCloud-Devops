@@ -69,6 +69,7 @@ func main() {
 	pipelineRepository := repository.NewMongoPipelineRepository(db)
 	microserviceRepository := repository.NewMongoMicroserviceRepository(db)
 	incidentRepository := repository.NewMongoIncidentRepository(db)
+	cloudAccountRepository := repository.NewMongoCloudAccountRepository(db)
 
 	employeeService := service.NewEmployeeService(employeeRepository)
 	applicationService := service.NewApplicationService(applicationRepository)
@@ -78,6 +79,7 @@ func main() {
 	pipelineService := service.NewPipelineService(applicationRepository, pipelineRepository)
 	microserviceService := service.NewMicroserviceService(applicationRepository, microserviceRepository)
 	incidentService := service.NewIncidentService(applicationRepository, clusterRepository, deploymentRepository, incidentRepository)
+	cloudAccountService := service.NewCloudAccountService(cloudAccountRepository)
 	platformService := service.NewPlatformService(applicationRepository, clusterRepository, environmentRepository, deploymentRepository, pipelineRepository, incidentRepository)
 
 	healthController := controller.NewHealthController(db)
@@ -89,9 +91,10 @@ func main() {
 	pipelineController := controller.NewPipelineController(pipelineService)
 	microserviceController := controller.NewMicroserviceController(microserviceService)
 	incidentController := controller.NewIncidentController(incidentService)
+	cloudAccountController := controller.NewCloudAccountController(cloudAccountService)
 	platformController := controller.NewPlatformController(platformService)
 
-	router := server.NewRouter(healthController, employeeController, applicationController, clusterController, environmentController, deploymentController, pipelineController, microserviceController, incidentController, platformController)
+	router := server.NewRouter(healthController, employeeController, applicationController, clusterController, environmentController, deploymentController, pipelineController, microserviceController, incidentController, cloudAccountController, platformController)
 
 	httpServer := &http.Server{
 		Addr:              ":" + port,

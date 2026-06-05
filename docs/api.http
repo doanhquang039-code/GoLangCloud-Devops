@@ -138,6 +138,52 @@ Content-Type: application/json
 ### Delete cluster
 DELETE {{baseUrl}}/api/v1/clusters/replace-with-created-cluster-id
 
+### Create cloud account
+POST {{baseUrl}}/api/v1/cloud-accounts
+Content-Type: application/json
+
+{
+  "name": "hr-prod-aws",
+  "provider": "aws",
+  "account_id": "123456789012",
+  "region": "ap-southeast-1",
+  "owner_team": "platform",
+  "environment": "production",
+  "monthly_cost_usd": 18420.75,
+  "budget_usd": 25000,
+  "compliance_score": 91,
+  "backup_status": "protected",
+  "open_security_findings": 3,
+  "tags": ["hr", "prod", "aws"]
+}
+
+### List cloud accounts
+GET {{baseUrl}}/api/v1/cloud-accounts
+
+### Filter production AWS cloud accounts with protected backups
+GET {{baseUrl}}/api/v1/cloud-accounts?provider=aws&environment=production&backup_status=protected&tag=prod
+
+### Cloud account summary
+GET {{baseUrl}}/api/v1/cloud/summary
+
+### Cloud policy violations
+GET {{baseUrl}}/api/v1/cloud/policy-violations?provider=aws&environment=production
+
+### Cloud remediation plan
+GET {{baseUrl}}/api/v1/cloud/remediation-plan?owner_team=platform
+
+### Update cloud account posture
+PATCH {{baseUrl}}/api/v1/cloud-accounts/replace-with-created-cloud-account-id
+Content-Type: application/json
+
+{
+  "status": "restricted",
+  "backup_status": "partial"
+}
+
+### Delete cloud account
+DELETE {{baseUrl}}/api/v1/cloud-accounts/replace-with-created-cloud-account-id
+
 ### Create environment
 POST {{baseUrl}}/api/v1/environments
 Content-Type: application/json
