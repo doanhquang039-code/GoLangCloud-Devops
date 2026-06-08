@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestMicroserviceControllerCreateUpdateAndPatchStatus(t *testing.T) {
-	ctx := t.Context()
+	ctx := context.Background()
 	applicationRepository := repository.NewInMemoryApplicationRepository()
 	microserviceRepository := repository.NewInMemoryMicroserviceRepository()
 	microserviceController := NewMicroserviceController(service.NewMicroserviceService(applicationRepository, microserviceRepository))

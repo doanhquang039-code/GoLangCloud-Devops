@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestPipelineControllerUpdateStageStatus(t *testing.T) {
-	ctx := t.Context()
+	ctx := context.Background()
 	pipelineRepository := repository.NewInMemoryPipelineRepository()
 	pipelineService := service.NewPipelineService(repository.NewInMemoryApplicationRepository(), pipelineRepository)
 	pipelineController := NewPipelineController(pipelineService)
@@ -51,7 +52,7 @@ func TestPipelineControllerUpdateStageStatus(t *testing.T) {
 }
 
 func TestPipelineControllerReturnsNotFoundForUnknownStage(t *testing.T) {
-	ctx := t.Context()
+	ctx := context.Background()
 	pipelineRepository := repository.NewInMemoryPipelineRepository()
 	pipelineService := service.NewPipelineService(repository.NewInMemoryApplicationRepository(), pipelineRepository)
 	pipelineController := NewPipelineController(pipelineService)
@@ -77,7 +78,7 @@ func TestPipelineControllerReturnsNotFoundForUnknownStage(t *testing.T) {
 }
 
 func TestPipelineControllerFiltersPipelineRunsByQuery(t *testing.T) {
-	ctx := t.Context()
+	ctx := context.Background()
 	pipelineRepository := repository.NewInMemoryPipelineRepository()
 	pipelineService := service.NewPipelineService(repository.NewInMemoryApplicationRepository(), pipelineRepository)
 	pipelineController := NewPipelineController(pipelineService)

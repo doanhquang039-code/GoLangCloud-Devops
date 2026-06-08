@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestDeploymentControllerFiltersDeploymentsByQuery(t *testing.T) {
-	ctx := t.Context()
+	ctx := context.Background()
 	deploymentRepository := repository.NewInMemoryDeploymentRepository()
 	deploymentService := service.NewDeploymentService(
 		repository.NewInMemoryApplicationRepository(),

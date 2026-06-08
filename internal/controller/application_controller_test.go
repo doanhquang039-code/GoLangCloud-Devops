@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -65,11 +66,12 @@ func TestApplicationControllerRejectsInvalidCreateApplication(t *testing.T) {
 }
 
 func TestApplicationControllerFiltersApplicationsByQuery(t *testing.T) {
+	ctx := context.Background()
 	applicationRepository := repository.NewInMemoryApplicationRepository()
 	applicationService := service.NewApplicationService(applicationRepository)
 	applicationController := NewApplicationController(applicationService)
 
-	if _, err := applicationRepository.Save(t.Context(), model.Application{
+	if _, err := applicationRepository.Save(ctx, model.Application{
 		ID:          "app-payroll-api",
 		Name:        "payroll-api",
 		Repository:  "github.com/company/payroll-api",
@@ -80,7 +82,7 @@ func TestApplicationControllerFiltersApplicationsByQuery(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := applicationRepository.Save(t.Context(), model.Application{
+	if _, err := applicationRepository.Save(ctx, model.Application{
 		ID:          "app-people-web",
 		Name:        "people-web",
 		Repository:  "github.com/company/people-web",

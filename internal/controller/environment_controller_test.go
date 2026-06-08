@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestEnvironmentControllerFiltersEnvironmentsByQuery(t *testing.T) {
-	ctx := t.Context()
+	ctx := context.Background()
 	environmentRepository := repository.NewInMemoryEnvironmentRepository()
 	environmentService := service.NewEnvironmentService(
 		repository.NewInMemoryApplicationRepository(),
