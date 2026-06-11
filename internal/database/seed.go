@@ -169,6 +169,15 @@ func SeedMongoData(ctx context.Context, db *mongo.Database) error {
 		{ID: "inc-payroll-error-rate", Title: "Payroll API error rate elevated", Summary: "5xx responses increased after the latest canary rollout.", Severity: "sev2", Status: "investigating", ApplicationID: "app-payroll-api", ClusterID: "cls-eks-staging", DeploymentID: "dep-payroll-staging-150", OwnerTeam: "platform", CreatedAt: oneHourAgo, UpdatedAt: now},
 		{ID: "inc-recruitment-cache", Title: "Recruitment web cache warmed slowly", Summary: "Cache warmup exceeded the expected threshold during deployment.", Severity: "sev4", Status: "resolved", ApplicationID: "app-recruitment-web", ClusterID: "cls-eks-staging", DeploymentID: "dep-recruitment-staging-220", OwnerTeam: "talent", CreatedAt: twoHoursAgo, UpdatedAt: now, ResolvedAt: &resolvedAt},
 	}
+	technologies := []model.Technology{
+		{ID: "tech-go", Name: "Go", Category: "language", Version: "1.22", OwnerTeam: "platform", Status: "active", RiskLevel: "low", AdoptionStage: "adopt", License: "BSD-3-Clause", DocumentationURL: "https://go.dev/doc/", Tags: []string{"backend", "cloud"}, CreatedAt: threeHoursAgo, UpdatedAt: now},
+		{ID: "tech-mongodb", Name: "MongoDB", Category: "database", Version: "6", OwnerTeam: "sre", Status: "active", RiskLevel: "medium", AdoptionStage: "adopt", License: "SSPL", DocumentationURL: "https://www.mongodb.com/docs/", Tags: []string{"database", "persistence"}, CreatedAt: threeHoursAgo, UpdatedAt: now},
+		{ID: "tech-kubernetes", Name: "Kubernetes", Category: "platform", Version: "1.30", OwnerTeam: "platform", Status: "active", RiskLevel: "medium", AdoptionStage: "standard", License: "Apache-2.0", DocumentationURL: "https://kubernetes.io/docs/", Tags: []string{"orchestration", "cloud"}, CreatedAt: threeHoursAgo, UpdatedAt: now},
+	}
+	activities := []model.Activity{
+		{ID: "act-payroll-deploy", Type: "deployment", Action: "rollout", Status: "succeeded", Actor: "an.nguyen@company.com", ResourceType: "deployment", ResourceID: "dep-payroll-prod-141", ApplicationID: "app-payroll-api", OwnerTeam: "platform", Summary: "Payroll API production rollout completed.", Metadata: map[string]string{"version": "v1.4.1", "strategy": "rolling"}, Tags: []string{"deployment", "prod"}, CreatedAt: finishedDeploy, UpdatedAt: finishedDeploy},
+		{ID: "act-recruitment-pipeline", Type: "pipeline", Action: "containerize", Status: "running", Actor: "quan.le@company.com", ResourceType: "pipeline", ResourceID: "pipe-recruitment-develop-220", ApplicationID: "app-recruitment-web", OwnerTeam: "talent", Summary: "Recruitment web image build is running.", Metadata: map[string]string{"branch": "develop"}, Tags: []string{"ci", "staging"}, CreatedAt: now.Add(-20 * time.Minute), UpdatedAt: now},
+	}
 
 	seedSets := []struct {
 		collection string
@@ -183,6 +192,8 @@ func SeedMongoData(ctx context.Context, db *mongo.Database) error {
 		{"pipeline_runs", pipelineRuns},
 		{"microservices", microservices},
 		{"incidents", incidents},
+		{"technologies", technologies},
+		{"activities", activities},
 	}
 
 	for _, seedSet := range seedSets {
@@ -245,6 +256,18 @@ func upsertSeedDocuments(ctx context.Context, collection *mongo.Collection, docu
 			}
 		}
 	case []model.Incident:
+		for _, document := range typedDocuments {
+			if err := upsertSeedDocument(ctx, collection, document.ID, document); err != nil {
+				return err
+			}
+		}
+	case []model.Technology:
+		for _, document := range typedDocuments {
+			if err := upsertSeedDocument(ctx, collection, document.ID, document); err != nil {
+				return err
+			}
+		}
+	case []model.Activity:
 		for _, document := range typedDocuments {
 			if err := upsertSeedDocument(ctx, collection, document.ID, document); err != nil {
 				return err

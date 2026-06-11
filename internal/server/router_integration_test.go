@@ -197,6 +197,84 @@ func TestRouterCloudAccountFlow(t *testing.T) {
 	}
 }
 
+func TestRouterTechnologyActivityFlow(t *testing.T) {
+	router := newTestRouter()
+
+	techBody := bytes.NewBufferString(`{
+		"name": "Go",
+		"category": "Language",
+		"version": "1.22",
+		"owner_team": "platform",
+		"risk_level": "LOW",
+		"tags": ["backend", "cloud"]
+	}`)
+	techResponse := httptest.NewRecorder()
+	router.ServeHTTP(techResponse, httptest.NewRequest(http.MethodPost, "/api/v1/technologies", techBody))
+	if techResponse.Code != http.StatusCreated {
+		t.Fatalf("expected technology create status %d, got %d: %s", http.StatusCreated, techResponse.Code, techResponse.Body.String())
+	}
+
+	var technology model.Technology
+	if err := json.NewDecoder(techResponse.Body).Decode(&technology); err != nil {
+		t.Fatal(err)
+	}
+	if technology.Category != "language" || technology.Status != "active" || technology.RiskLevel != "low" {
+		t.Fatalf("expected normalized technology fields, got %#v", technology)
+	}
+
+	activityBody := bytes.NewBufferString(`{
+		"type": "Deployment",
+		"action": "Rollout",
+		"actor": "devops@example.com",
+		"resource_type": "technology",
+		"resource_id": "` + technology.ID + `",
+		"owner_team": "platform",
+		"summary": "Technology baseline approved.",
+		"tags": ["audit"]
+	}`)
+	activityResponse := httptest.NewRecorder()
+	router.ServeHTTP(activityResponse, httptest.NewRequest(http.MethodPost, "/api/v1/activities", activityBody))
+	if activityResponse.Code != http.StatusCreated {
+		t.Fatalf("expected activity create status %d, got %d: %s", http.StatusCreated, activityResponse.Code, activityResponse.Body.String())
+	}
+
+	var activity model.Activity
+	if err := json.NewDecoder(activityResponse.Body).Decode(&activity); err != nil {
+		t.Fatal(err)
+	}
+	if activity.Type != "deployment" || activity.Action != "rollout" || activity.Status != "succeeded" {
+		t.Fatalf("expected normalized activity fields, got %#v", activity)
+	}
+
+	techListResponse := httptest.NewRecorder()
+	router.ServeHTTP(techListResponse, httptest.NewRequest(http.MethodGet, "/api/v1/technologies?category=LANGUAGE&owner_team=platform&tag=backend", nil))
+	if techListResponse.Code != http.StatusOK {
+		t.Fatalf("expected technology list status %d, got %d: %s", http.StatusOK, techListResponse.Code, techListResponse.Body.String())
+	}
+
+	var technologies []model.Technology
+	if err := json.NewDecoder(techListResponse.Body).Decode(&technologies); err != nil {
+		t.Fatal(err)
+	}
+	if len(technologies) != 1 || technologies[0].ID != technology.ID {
+		t.Fatalf("expected filtered technology %q, got %#v", technology.ID, technologies)
+	}
+
+	activityListResponse := httptest.NewRecorder()
+	router.ServeHTTP(activityListResponse, httptest.NewRequest(http.MethodGet, "/api/v1/activities?type=DEPLOYMENT&resource_type=technology&owner_team=PLATFORM&tag=audit", nil))
+	if activityListResponse.Code != http.StatusOK {
+		t.Fatalf("expected activity list status %d, got %d: %s", http.StatusOK, activityListResponse.Code, activityListResponse.Body.String())
+	}
+
+	var activities []model.Activity
+	if err := json.NewDecoder(activityListResponse.Body).Decode(&activities); err != nil {
+		t.Fatal(err)
+	}
+	if len(activities) != 1 || activities[0].ID != activity.ID {
+		t.Fatalf("expected filtered activity %q, got %#v", activity.ID, activities)
+	}
+}
+
 func newTestRouter() http.Handler {
 	employeeRepository := repository.NewInMemoryEmployeeRepository()
 	applicationRepository := repository.NewInMemoryApplicationRepository()
@@ -207,6 +285,8 @@ func newTestRouter() http.Handler {
 	microserviceRepository := repository.NewInMemoryMicroserviceRepository()
 	incidentRepository := repository.NewInMemoryIncidentRepository()
 	cloudAccountRepository := repository.NewInMemoryCloudAccountRepository()
+	technologyRepository := repository.NewInMemoryTechnologyRepository()
+	activityRepository := repository.NewInMemoryActivityRepository()
 
 	employeeService := service.NewEmployeeService(employeeRepository)
 	applicationService := service.NewApplicationService(applicationRepository)
@@ -217,6 +297,8 @@ func newTestRouter() http.Handler {
 	microserviceService := service.NewMicroserviceService(applicationRepository, microserviceRepository)
 	incidentService := service.NewIncidentService(applicationRepository, clusterRepository, deploymentRepository, incidentRepository)
 	cloudAccountService := service.NewCloudAccountService(cloudAccountRepository)
+	technologyService := service.NewTechnologyService(technologyRepository)
+	activityService := service.NewActivityService(activityRepository)
 	platformService := service.NewPlatformService(applicationRepository, clusterRepository, environmentRepository, deploymentRepository, pipelineRepository, incidentRepository)
 
 	return NewRouter(
@@ -230,6 +312,8 @@ func newTestRouter() http.Handler {
 		controller.NewMicroserviceController(microserviceService),
 		controller.NewIncidentController(incidentService),
 		controller.NewCloudAccountController(cloudAccountService),
+		controller.NewTechnologyController(technologyService),
+		controller.NewActivityController(activityService),
 		controller.NewPlatformController(platformService),
 	)
 }

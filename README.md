@@ -4,7 +4,7 @@ Go API service for HR/cloud platform operations. It tracks employees, applicatio
 
 ## Features
 
-- REST API with CRUD for employees, applications, clusters, cloud accounts, environments, deployments, microservices, and incidents.
+- REST API with CRUD for employees, applications, clusters, cloud accounts, environments, deployments, microservices, incidents, technologies, and activities.
 - Cloud account inventory with provider, region, owner, environment, monthly cost, budget, compliance, backup posture, and security finding metadata.
 - Cloud microservice inventory with provider, region, cluster, namespace, environment, runtime, image, replicas, resource requests, health path, SLO, and error budget metadata.
 - Pipeline run creation, status updates, stage updates, and deletion.
@@ -124,6 +124,8 @@ Base URL: `http://localhost:8080`
 | Pipelines | `/api/v1/pipelines`, `/api/v1/pipelines/{id}`, `/api/v1/pipelines/{id}/stages/{stage}` |
 | Microservices | `/api/v1/microservices`, `/api/v1/microservices/{id}` |
 | Incidents | `/api/v1/incidents`, `/api/v1/incidents/{id}` |
+| Technologies | `/api/v1/technologies`, `/api/v1/technologies/{id}` |
+| Activities | `/api/v1/activities`, `/api/v1/activities/{id}` |
 | Platform | `/api/v1/platform/summary`, `/api/v1/platform/scorecards`, `/api/v1/platform/environment-drift` |
 
 Common list examples:

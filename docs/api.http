@@ -436,6 +436,101 @@ Content-Type: application/json
 ### Delete incident
 DELETE {{baseUrl}}/api/v1/incidents/replace-with-created-incident-id
 
+### Create technology
+POST {{baseUrl}}/api/v1/technologies
+Content-Type: application/json
+
+{
+  "name": "Go",
+  "category": "language",
+  "version": "1.22",
+  "owner_team": "platform",
+  "status": "active",
+  "risk_level": "low",
+  "adoption_stage": "adopt",
+  "license": "BSD-3-Clause",
+  "documentation_url": "https://go.dev/doc/",
+  "tags": ["backend", "cloud"]
+}
+
+### List platform backend technologies
+GET {{baseUrl}}/api/v1/technologies?category=language&owner_team=platform&tag=backend
+
+### Search technologies by name, category, version, or owner
+GET {{baseUrl}}/api/v1/technologies?q=mongo&risk_level=medium
+
+### Update technology
+PUT {{baseUrl}}/api/v1/technologies/replace-with-created-technology-id
+Content-Type: application/json
+
+{
+  "name": "Go",
+  "category": "language",
+  "version": "1.23",
+  "owner_team": "platform",
+  "status": "active",
+  "risk_level": "low",
+  "adoption_stage": "standard",
+  "license": "BSD-3-Clause",
+  "documentation_url": "https://go.dev/doc/",
+  "tags": ["backend", "cloud", "standard"]
+}
+
+### Delete technology
+DELETE {{baseUrl}}/api/v1/technologies/replace-with-created-technology-id
+
+### Create activity
+POST {{baseUrl}}/api/v1/activities
+Content-Type: application/json
+
+{
+  "type": "deployment",
+  "action": "rollout",
+  "status": "succeeded",
+  "actor": "devops@company.com",
+  "resource_type": "deployment",
+  "resource_id": "replace-with-created-deployment-id",
+  "application_id": "replace-with-created-application-id",
+  "owner_team": "platform",
+  "summary": "Payroll API rollout completed.",
+  "metadata": {
+    "version": "v1.4.1",
+    "strategy": "rolling"
+  },
+  "tags": ["audit", "prod"]
+}
+
+### List deployment audit activities
+GET {{baseUrl}}/api/v1/activities?type=deployment&resource_type=deployment&owner_team=platform&tag=audit
+
+### Search activities by actor, resource, summary, or metadata
+GET {{baseUrl}}/api/v1/activities?q=rollout&status=succeeded
+
+### Update activity
+PUT {{baseUrl}}/api/v1/activities/replace-with-created-activity-id
+Content-Type: application/json
+
+{
+  "type": "deployment",
+  "action": "rollout",
+  "status": "succeeded",
+  "actor": "devops@company.com",
+  "resource_type": "deployment",
+  "resource_id": "replace-with-created-deployment-id",
+  "application_id": "replace-with-created-application-id",
+  "owner_team": "platform",
+  "summary": "Payroll API rollout verified after smoke checks.",
+  "metadata": {
+    "version": "v1.4.1",
+    "strategy": "rolling",
+    "smoke": "passed"
+  },
+  "tags": ["audit", "prod", "verified"]
+}
+
+### Delete activity
+DELETE {{baseUrl}}/api/v1/activities/replace-with-created-activity-id
+
 ### Platform summary
 GET {{baseUrl}}/api/v1/platform/summary
 
